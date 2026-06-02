@@ -1,0 +1,105 @@
+<?php
+// admin/mahasiswa/proses_import.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Sesuaikan jalur ke config database kamu
+require_once '../../config/database.php';
+
+// Tentukan halaman asal secara dinamis, jika tidak terdeteksi default ke dashboard utama admin
+$kembali_ke = $_SERVER['HTTP_REFERER'] ?? '../dashboard.php';
+
+if (isset($_POST['btn_import_mahasiswa'])) {
+    
+    // 1. Validasi file upload
+    if (!isset($_FILES['file_csv']['tmp_name']) || $_FILES['file_csv']['error'] !== UPLOAD_ERR_OK) {
+        $_SESSION['msg_status'] = 'error';
+        $_SESSION['msg_text'] = 'Gagal mengunggah berkas CSV. Pastikan file tidak kosong.';
+        header("Location: " . $kembali_ke); 
+        exit;
+    }
+
+    // 2. Buka file CSV
+    if (($handle = fopen($_FILES['file_csv']['tmp_name'], "r")) !== FALSE) {
+        
+        fgetcsv($handle, 1000, ","); // Lewati baris judul kolom (Header)
+        $berhasil = 0; 
+        $gagal = 0;
+
+        // Gunakan pendeteksi koneksi MySQLi ($db) bawaan aplikasi kamu
+        if (!isset($db)) {
+            $_SESSION['msg_status'] = 'error';
+            $_SESSION['msg_text'] = 'Koneksi database ($db) tidak ditemukan.';
+            fclose($handle);
+            header("Location: " . $kembali_ke);
+            exit;
+        }
+
+        // Matikan autocommit untuk simulasi Transaction di MySQLi
+        mysqli_begin_transaction($db);
+
+        try {
+            while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                // Lewati jika baris kosong atau NIM/Nama tidak ada
+                if (empty($row[0]) || empty($row[1])) {
+                    continue;
+                }
+
+                $nim   = mysqli_real_escape_string($db, trim($row[0]));
+                $nama  = mysqli_real_escape_string($db, trim($row[1]));
+                $email = isset($row[2]) ? mysqli_real_escape_string($db, trim($row[2])) : '';
+                $no_hp = isset($row[3]) ? mysqli_real_escape_string($db, trim($row[3])) : '';
+                
+                // Cek duplikasi NIM mahasiswa
+                $check_query = mysqli_query($db, "SELECT nim FROM mahasiswa WHERE nim = '$nim'");
+                if (mysqli_num_rows($check_query) > 0) { 
+                    $gagal++; 
+                    continue; 
+                }
+
+                // Buat data akun pendaftar ke tabel user
+                $password_default = password_hash($nim . "123", PASSWORD_DEFAULT);
+                $query_user = "INSERT INTO user (username, password, role) VALUES ('$nim', '$password_default', 'mahasiswa')";
+                
+                if (mysqli_query($db, $query_user)) {
+                    $id_user_baru = mysqli_insert_id($db);
+
+                    // Simpan profil lengkap ke tabel mahasiswa
+                    // PENTING: Sesuaikan nama kolom tabel database kamu (misal: nama_mahasiswa atau nama_mhs)
+                    $query_mhs = "INSERT INTO mahasiswa (id_user, nim, nama_mahasiswa, status_akademik, email, no_hp, foto) 
+                                  VALUES ('$id_user_baru', '$nim', '$nama', 'Aktif', '$email', '$no_hp', 'default.png')";
+                    
+                    if (mysqli_query($db, $query_mhs)) {
+                        $berhasil++;
+                    } else {
+                        $gagal++;
+                    }
+                } else {
+                    $gagal++;
+                }
+            }
+            
+            fclose($handle);
+            mysqli_commit($db); // Simpan permanen jika semua baris sukses
+            
+            $_SESSION['msg_status'] = 'success';
+            $_SESSION['msg_text'] = "Impor Berhasil! Terdaftar sebanyak $berhasil mahasiswa. (Gagal/Duplikat: $gagal)";
+
+        } catch (Exception $e) {
+            mysqli_rollback($db); // Batalkan semua jika ada crash sistem tengah jalan
+            fclose($handle);
+            $_SESSION['msg_status'] = 'error';
+            $_SESSION['msg_text'] = 'Gagal memproses baris database: ' . $e->getMessage();
+        }
+    } else {
+        $_SESSION['msg_status'] = 'error';
+        $_SESSION['msg_text'] = 'Format Berkas CSV tidak valid saat dibaca.';
+    }
+    
+    header("Location: " . $kembali_ke); 
+    exit;
+} else {
+    header("Location: " . $kembali_ke);
+    exit;
+}
