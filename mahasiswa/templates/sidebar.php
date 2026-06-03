@@ -122,7 +122,8 @@ $base_path = $is_inside_folder ? '../' : '';
             </h4>
         </div>
 
-        <a href="<?= $base_path; ?>profil/profile.php" class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
+<a href="<?= $base_path; ?>profil/edit_profil.php"
+   class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
             <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
                  class="rounded-circle mb-2" 
                  style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
@@ -141,7 +142,14 @@ $base_path = $is_inside_folder ? '../' : '';
                 <i class="fa-solid fa-chart-pie me-3" style="width: 20px;"></i>Dashboard Utama
             </a>
 
-            <?php $is_akademik_active = ($current_page == 'jadwal.php' || $current_page == 'khs.php' || $current_page == 'krs.php' || $current_page == 'cetak_krs.php'); ?>
+            <?php $is_akademik_active =
+(
+    $current_page == 'jadwal.php' ||
+    $current_page == 'absensi.php' ||
+    $current_page == 'khs.php' ||
+    $current_page == 'krs.php' ||
+    $current_page == 'cetak_krs.php'
+); ?>
             <a class="list-group-item list-group-item-action justify-content-between <?= $is_akademik_active ? '' : 'collapsed'; ?>"
                data-bs-toggle="collapse" data-bs-target="#menuAkademikMhs" role="button" aria-expanded="<?= $is_akademik_active ? 'true' : 'false'; ?>">
                 <div class="d-flex align-items-center">
@@ -153,12 +161,21 @@ $base_path = $is_inside_folder ? '../' : '';
                 <div class="nav flex-column pb-1 submenu-box">
                     <a class="list-group-item list-group-item-action <?= ($current_page == 'krs.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/krs.php"><i class="fa-solid fa-file-signature me-2"></i>Pengisian KRS Online</a>
                     <a class="list-group-item list-group-item-action <?= ($current_page == 'jadwal.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/jadwal.php"><i class="fa-regular fa-calendar me-2"></i>Jadwal Kuliah & Absen</a>
+                    <a class="list-group-item list-group-item-action <?= ($current_page == 'absensi.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/absensi.php">
+    <i class="fa-solid fa-user-check me-2"></i>Riwayat Absensi
+</a>
                     <a class="list-group-item list-group-item-action <?= ($current_page == 'khs.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/khs.php"><i class="fa-solid fa-square-poll-horizontal me-2"></i>Hasil Studi & KHS</a>
                     <a class="list-group-item list-group-item-action <?= ($current_page == 'cetak_krs.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/cetak_krs.php"><i class="fa-solid fa-print me-2"></i>Cetak Kertas KRS</a>
                 </div>
             </div>
 
-            <?php $is_profil_active = ($current_page == 'profile.php'); ?>
+           <?php
+$is_profil_active =
+(
+    $current_page == 'profile.php' ||
+    $current_page == 'edit_profil.php'
+);
+?>
             <a class="list-group-item list-group-item-action justify-content-between <?= $is_profil_active ? '' : 'collapsed'; ?>"
                data-bs-toggle="collapse" data-bs-target="#menuProfilMhs" role="button" aria-expanded="<?= $is_profil_active ? 'true' : 'false'; ?>">
                 <div class="d-flex align-items-center">
@@ -168,7 +185,11 @@ $base_path = $is_inside_folder ? '../' : '';
             </a>
             <div class="collapse <?= $is_profil_active ? 'show' : ''; ?>" id="menuProfilMhs" style="background: rgba(0,0,0,0.15); border-radius: 8px; margin: 2px 16px;">
                 <div class="nav flex-column pb-1 submenu-box">
-                    <a class="list-group-item list-group-item-action <?= ($current_page == 'profile.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>profil/profile.php"><i class="fa-solid fa-sliders me-2"></i>Ubah Profil & Sandi</a>
+<a class="list-group-item list-group-item-action <?= ($current_page == 'edit_profil.php') ? 'active-submenu' : ''; ?>"
+   href="<?= $base_path; ?>profil/edit_profil.php">
+    <i class="fa-solid fa-user-pen me-2"></i>
+    Ubah Profil & Sandi
+</a>
                 </div>
             </div>
 
