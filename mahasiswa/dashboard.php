@@ -71,7 +71,7 @@ try {
         $stmt_sks = $pdo->prepare("
             SELECT SUM(mk.sks) FROM krs k 
             JOIN jadwal j ON k.id_jadwal = j.id_jadwal
-            JOIN matakuliah mk ON j.id_mk = mk.id_mk 
+            JOIN mata_kuliah mk ON j.id_mk = mk.id_mk 
             WHERE k.id_mahasiswa = ? AND k.status_validasi = 'Disetujui'
         ");
         $stmt_sks->execute([$id_mahasiswa]);
@@ -90,7 +90,7 @@ try {
             SELECT j.*, mk.nama_mk, mk.kode_mk, k.nama_kelas AS kelas, j.ruang AS ruangan, d.nama_dosen
             FROM krs k_rs
             JOIN jadwal j ON k_rs.id_jadwal = j.id_jadwal
-            JOIN matakuliah mk ON j.id_mk = mk.id_mk 
+            JOIN mata_kuliah mk ON j.id_mk = mk.id_mk 
             JOIN kelas k ON j.id_kelas = k.id_kelas
             JOIN dosen d ON j.id_dosen = d.id_dosen
             WHERE k_rs.id_mahasiswa = ? AND k_rs.status_validasi = 'Disetujui'

@@ -20,7 +20,7 @@ try {
     // 2. Query mengambil matakuliah unik yang diampu dosen (Menggunakan PDO)
     $stmt_mk = $pdo->prepare("
         SELECT DISTINCT mk.* FROM jadwal j
-        JOIN matakuliah mk ON j.id_mk = mk.id_mk
+        JOIN mata_kuliah mk ON j.id_mk = mk.id_mk
         WHERE j.id_dosen = ?
         ORDER BY mk.kode_mk ASC
     ");

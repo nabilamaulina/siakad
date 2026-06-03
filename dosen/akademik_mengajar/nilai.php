@@ -21,7 +21,7 @@ try {
     $stmt_opsi = $pdo->prepare("
         SELECT j.id_jadwal, mk.nama_mk, k.nama_kelas 
         FROM jadwal j
-        JOIN matakuliah mk ON j.id_mk = mk.id_mk
+        JOIN mata_kuliah mk ON j.id_mk = mk.id_mk
         JOIN kelas k ON j.id_kelas = k.id_kelas
         WHERE j.id_dosen = ?
     ");

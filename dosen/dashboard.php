@@ -80,7 +80,7 @@ try {
     // 3. Ambil data Agenda Mengajar Riil dari database
     $query_jadwal = "SELECT j.*, mk.nama_mk, mk.kode_mk, k.nama_kelas as kelas 
                      FROM jadwal j 
-                     JOIN matakuliah mk ON j.id_mk = mk.id_mk 
+                     JOIN mata_kuliah mk ON j.id_mk = mk.id_mk 
                      LEFT JOIN kelas k ON j.id_kelas = k.id_kelas
                      WHERE j.id_dosen = ? 
                      ORDER BY FIELD(j.hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'), j.jam_mulai ASC";

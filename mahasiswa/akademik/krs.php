@@ -61,118 +61,142 @@ $sem_filter = isset($_GET['semester']) ? trim($_GET['semester']) : $semester_mah
 // 📥 PROSES AKSI: TAMBAH MATAKULIAH (CREATE)
 // =========================================================================
 if (isset($_POST['action_ambil_mk'])) {
-
     $id_jadwal = (int)($_POST['id_jadwal'] ?? 0);
 
-    if ($id_mahasiswa_asli == 0) {
-
+    if ($id_mahasiswa_asli == 0 || $id_user_login == 0) {
         $msg_status = 'danger';
-        $msg_text = 'Gagal mengambil data mahasiswa. Akun login Anda tidak terelasi dengan benar di tabel mahasiswa.';
+        $msg_text = 'Gagal mengambil data autentikasi. Sesi login Anda tidak terelasi dengan benar di database.';
     } else {
-
         try {
+            // SOLUSI: Cari id_semester yang valid (Primary Key) dari tabel semester yang berstatus aktif/sesuai
+            // Kita coba cari yang kolom statusnya 'aktif' atau 'Aktif'. Jika tidak ada kolom status, kita ambil ID pertama.
+            $stmt_sem_id = $pdo->query("SELECT id_semester FROM semester WHERE status = 'aktif' OR status = 'Aktif' LIMIT 1");
+            $sem_data = $stmt_sem_id->fetch(PDO::FETCH_ASSOC);
+            
+            // Jika pencarian status aktif gagal, ambil id_semester acak/teratas agar lolos Foreign Key
+            if (!$sem_data) {
+                $stmt_sem_id = $pdo->query("SELECT id_semester FROM semester LIMIT 1");
+                $sem_data = $stmt_sem_id->fetch(PDO::FETCH_ASSOC);
+            }
+            
+            $id_semester_valid = $sem_data ? $sem_data['id_semester'] : null;
 
+            if (!$id_semester_valid) {
+                throw new Exception("Tabel 'semester' Anda kosong. Silakan isi master data semester terlebih dahulu di database.");
+            }
+
+            // Cek duplikasi KRS berdasarkan id_mahasiswa & id_jadwal
             $stmt_cek = $pdo->prepare("
                 SELECT id_krs
                 FROM krs
-                WHERE id_user = ?
+                WHERE id_mahasiswa = ?
                 AND id_jadwal = ?
             ");
-
             $stmt_cek->execute([
-                $id_user_login,
+                $id_mahasiswa_asli,
                 $id_jadwal
             ]);
 
             if ($stmt_cek->rowCount() > 0) {
-
                 $msg_status = 'warning';
-                $msg_text = 'Jadwal ini sudah ada di KRS Anda.';
+                $msg_text = 'Jadwal mata kuliah ini sudah ada di dalam lembar KRS Anda.';
             } else {
-
+                // Gunakan id_semester_valid hasil query penyesuaian di atas
                 $stmt_add = $pdo->prepare("
-                    INSERT INTO krs
-                    (
+                    INSERT INTO krs (
                         id_user,
+                        id_mahasiswa,
                         id_jadwal,
                         tahun_akademik,
                         id_semester,
-                        status_krs
-                    )
-                    VALUES
-                    (?, ?, ?, ?, ?)
+                        status_krs,
+                        status_validasi
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 ");
 
                 $stmt_add->execute([
                     $id_user_login,
+                    $id_mahasiswa_asli,
                     $id_jadwal,
                     '2025/2026-Ganjil',
-                    $sem_filter,
-                    'pending'
+                    $id_semester_valid,     // Menggunakan ID asli dari tabel semester
+                    'pending',
+                    'Pending'
                 ]);
 
                 $msg_status = 'success';
-                $msg_text = 'Mata kuliah berhasil ditambahkan.';
+                $msg_text = 'Mata kuliah berhasil ditambahkan ke KRS.';
             }
         } catch (Exception $e) {
-
             $msg_status = 'danger';
-            $msg_text = $e->getMessage();
+            $msg_text = 'Gagal menambahkan mata kuliah: ' . $e->getMessage();
         }
     }
 }
 
 // =========================================================================
-// 🔍 AMBIL DATA MATA KULIAH & KRS DENGAN STRUKTUR ASLI DATABASE ANDA
+// 📥 PROSES AKSI: BATAL / HAPUS MATAKULIAH (DELETE)
+// =========================================================================
+if (isset($_POST['action_batal_mk'])) {
+    $id_krs = (int)($_POST['id_krs'] ?? 0);
+    try {
+        $stmt_del = $pdo->prepare("DELETE FROM krs WHERE id_krs = ? AND id_mahasiswa = ?");
+        $stmt_del->execute([$id_krs, $id_mahasiswa_asli]);
+        
+        $msg_status = 'success';
+        $msg_text = 'Mata kuliah berhasil dihapus dari KRS Anda.';
+    } catch (Exception $e) {
+        $msg_status = 'danger';
+        $msg_text = 'Gagal membatalkan mata kuliah: ' . $e->getMessage();
+    }
+}
+
+// =========================================================================
+// 📥 AMBIL DATA MATA KULIAH Ditawarkan & KRS Diambil
 // =========================================================================
 $available_mk = [];
 $taken_krs = [];
 try {
+    // Mengambil Jadwal Kuliah Berdasarkan Tingkat Semester Mata Kuliah
     $stmt_av = $pdo->prepare("
-SELECT
-    j.id_jadwal,
-    j.hari,
-    j.jam_mulai,
-    j.jam_selesai,
-    j.ruangan,
-    d.nama_dosen,
-    mk.id_mk,
-    mk.kode_mk,
-    mk.nama_mk,
-    mk.sks,
-    mk.semester
-FROM jadwal j
-JOIN mata_kuliah mk
-    ON j.id_mk = mk.id_mk
-LEFT JOIN dosen d
-    ON j.id_dosen = d.id_dosen
-WHERE j.id_semester = ?
-ORDER BY mk.nama_mk ASC
-");
+        SELECT
+            j.id_jadwal,
+            j.hari,
+            j.jam_mulai,
+            j.jam_selesai,
+            j.ruangan,
+            d.nama_dosen,
+            mk.id_mk,
+            mk.kode_mk,
+            mk.nama_mk,
+            mk.sks,
+            mk.semester
+        FROM jadwal j
+        JOIN mata_kuliah mk ON j.id_mk = mk.id_mk
+        LEFT JOIN dosen d ON j.id_dosen = d.id_dosen
+        WHERE mk.semester = ?
+        ORDER BY mk.nama_mk ASC
+    ");
 
     $stmt_av->execute([$sem_filter]);
     $available_mk = $stmt_av->fetchAll(PDO::FETCH_ASSOC);
 
-    // 2. Ambil data KRS yang sudah diambil oleh mahasiswa ini menggunakan k.id_mahasiswa
+    // Ambil data KRS yang sudah diambil oleh mahasiswa
     if ($id_mahasiswa_asli > 0) {
         $stmt_tk = $pdo->prepare("
-SELECT
-    k.id_krs,
-    k.status_krs,
-    mk.nama_mk,
-    mk.kode_mk,
-    mk.sks
-FROM krs k
-JOIN jadwal j
-    ON k.id_jadwal = j.id_jadwal
-JOIN mata_kuliah mk
-    ON j.id_mk = mk.id_mk
-WHERE k.id_user = ?
-");
+            SELECT
+                k.id_krs,
+                k.status_validasi,
+                mk.nama_mk,
+                mk.kode_mk,
+                mk.sks
+            FROM krs k
+            JOIN jadwal j ON k.id_jadwal = j.id_jadwal
+            JOIN mata_kuliah mk ON j.id_mk = mk.id_mk
+            WHERE k.id_mahasiswa = ?
+        ");
 
-        $stmt_tk->execute([
-            $id_user_login
-        ]);
+        $stmt_tk->execute([$id_mahasiswa_asli]);
         $taken_krs = $stmt_tk->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (Exception $e) {
@@ -216,14 +240,12 @@ WHERE k.id_user = ?
                                     <tr class="border-bottom border-light">
                                         <td class="ps-4">
                                             <span class="fw-bold text-dark d-block"><?= htmlspecialchars($row_mk['nama_mk']); ?></span>
-                                            <small class="text-muted">Kode: <?= htmlspecialchars($row_mk['kode_mk']); ?></small>
+                                            <small class="text-muted">Kode: <?= htmlspecialchars($row_mk['kode_mk']); ?> | Dosen: <?= htmlspecialchars($row_mk['nama_dosen'] ?? 'Belum Ditentukan'); ?> | Ruang: <?= htmlspecialchars($row_mk['ruangan'] ?? '-'); ?></small>
                                         </td>
                                         <td class="text-center fw-bold" style="color: #245358;"><?= (int)$row_mk['sks']; ?> SKS</td>
                                         <td class="pe-4 text-end">
                                             <form method="POST">
-                                                <input type="hidden"
-                                                    name="id_jadwal"
-                                                    value="<?= $row_mk['id_jadwal']; ?>">
+                                                <input type="hidden" name="id_jadwal" value="<?= $row_mk['id_jadwal']; ?>">
                                                 <button type="submit" name="action_ambil_mk" class="btn btn-sm text-white rounded-3 px-3 fw-semibold shadow-sm" style="background-color:#245358;"><i class="fa-solid fa-plus me-1"></i> Ambil</button>
                                             </form>
                                         </td>
@@ -260,12 +282,14 @@ WHERE k.id_user = ?
                                         <small class="fw-bold text-primary"><?= $tk['sks']; ?> SKS</small>
                                     </td>
                                     <td>
-                                        <span class="badge rounded-pill bg-warning-subtle text-warning">
-                                            <?= htmlspecialchars($tk['status_krs'] ?? 'Pending'); ?>
-                                        </span>
+                                        <?php if (strtolower($tk['status_validasi'] ?? '') == 'disetujui'): ?>
+                                            <span class="badge rounded-pill bg-success-subtle text-success">Disetujui</span>
+                                        <?php else: ?>
+                                            <span class="badge rounded-pill bg-warning-subtle text-warning">Pending</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="pe-3 text-end">
-                                        <form method="POST">
+                                        <form method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan mata kuliah ini?');">
                                             <input type="hidden" name="id_krs" value="<?= $tk['id_krs']; ?>">
                                             <button type="submit" name="action_batal_mk" class="btn btn-link text-danger p-0 border-0"><i class="fa-solid fa-trash-can"></i></button>
                                         </form>

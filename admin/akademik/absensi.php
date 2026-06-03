@@ -17,7 +17,7 @@ $id_jadwal_terpilih = $_GET['id_jadwal'] ?? '';
 $pertemuan_terpilih = $_GET['pertemuan'] ?? '1';
 $mahasiswa_list = [];
 
-if (!empty($id_jadwal_terpilih)) {
+if (!empty($id_jadwal_terpilled)) {
     // Ambil list mahasiswa yang terdaftar di kelas matakuliah ini berdasarkan KRS
     $mhs_stmt = $pdo->prepare("SELECT k.id_krs, m.id_mahasiswa, m.nim, m.nama_mahasiswa 
                                FROM krs k
@@ -107,28 +107,31 @@ if (!empty($id_jadwal_terpilih)) {
                             <tbody class="small text-secondary">
                                 <?php if (count($mahasiswa_list) > 0): ?>
                                     <?php foreach ($mahasiswa_list as $mhs): 
-                                        $check_stmt = $pdo->prepare("SELECT status_hadir FROM presensi WHERE id_krs = ? AND pertemuan_ke = ?");
-                                        $check_stmt->execute([$mhs['id_krs'], $pertemuan_terpilih]);
+                                        // FIX BUG #D: Mengubah query check agar mencocokkan id_mahasiswa dan id_jadwal, bukan id_krs lama
+                                        $check_stmt = $pdo->prepare("SELECT status_hadir FROM presensi 
+                                                                     WHERE id_mahasiswa = ? AND id_jadwal = ? AND pertemuan_ke = ?");
+                                        $check_stmt->execute([$mhs['id_mahasiswa'], $id_jadwal_terpilih, $pertemuan_terpilih]);
                                         $old_status = $check_stmt->fetchColumn() ?: 'H';
                                     ?>
                                         <tr>
                                             <td class="text-start font-monospace fw-bold text-primary"><?= htmlspecialchars($mhs['nim']); ?></td>
                                             <td class="text-start fw-bold text-dark"><?= htmlspecialchars($mhs['nama_mahasiswa']); ?></td>
+                                            
                                             <td>
-                                                <input type="radio" name="status_absen[<?= $mhs['id_krs']; ?>]" value="H" <?= $old_status == 'H' ? 'checked' : ''; ?> class="form-check-input border-success shadow-none">
+                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="H" <?= $old_status == 'H' ? 'checked' : ''; ?> class="form-check-input border-success shadow-none">
                                             </td>
                                             <td>
-                                                <input type="radio" name="status_absen[<?= $mhs['id_krs']; ?>]" value="S" <?= $old_status == 'S' ? 'checked' : ''; ?> class="form-check-input border-primary shadow-none">
+                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="S" <?= $old_status == 'S' ? 'checked' : ''; ?> class="form-check-input border-primary shadow-none">
                                             </td>
                                             <td>
-                                                <input type="radio" name="status_absen[<?= $mhs['id_krs']; ?>]" value="I" <?= $old_status == 'I' ? 'checked' : ''; ?> class="form-check-input border-warning shadow-none">
+                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="I" <?= $old_status == 'I' ? 'checked' : ''; ?> class="form-check-input border-warning shadow-none">
                                             </td>
                                             <td>
-                                                <input type="radio" name="status_absen[<?= $mhs['id_krs']; ?>]" value="A" <?= $old_status == 'A' ? 'checked' : ''; ?> class="form-check-input border-danger shadow-none">
+                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="A" <?= $old_status == 'A' ? 'checked' : ''; ?> class="form-check-input border-danger shadow-none">
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
-                                <?php else: ?>
+                                <?php border: ?>
                                     <tr>
                                         <td colspan="6" class="text-center py-5 text-muted">Belum ada mahasiswa kelas ini di tabel data rencana studi (KRS).</td>
                                     </tr>

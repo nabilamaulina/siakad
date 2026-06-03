@@ -21,7 +21,7 @@ try {
     $stmt_jadwal = $pdo->prepare("
         SELECT j.*, mk.nama_mk, mk.kode_mk, mk.sks, k.nama_kelas 
         FROM jadwal j
-        JOIN matakuliah mk ON j.id_mk = mk.id_mk
+        JOIN mata_kuliah mk ON j.id_mk = mk.id_mk
         JOIN kelas k ON j.id_kelas = k.id_kelas
         WHERE j.id_dosen = ?
         ORDER BY FIELD(j.hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu')
@@ -35,7 +35,7 @@ try {
     $stmt_sks = $pdo->prepare("
         SELECT SUM(mk.sks) as total_sks 
         FROM jadwal j 
-        JOIN matakuliah mk ON j.id_mk = mk.id_mk 
+        JOIN mata_kuliah mk ON j.id_mk = mk.id_mk 
         WHERE j.id_dosen = ?
     ");
     $stmt_sks->execute([$id_dosen]);

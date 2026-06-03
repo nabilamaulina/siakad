@@ -25,13 +25,14 @@ try {
         exit;
     }
 
-    // 3. Ambil data ajuan KRS mahasiswa bimbingan wali aktif menggunakan PDO
+    // 3. Ambil data ajuan KRS mahasiswa bimbingan wali aktif menggunakan PDO (FIX BUG #F)
     $query_krs = "
-        SELECT k.*, m.nama_mhs, m.nim, kelas.nama_kelas
+        SELECT k.id_krs, k.status_validasi, k.tahun_akademik, m.nama_mahasiswa, m.nim, kelas.nama_kelas
         FROM krs k
-        JOIN mahasiswa m ON k.id_mhs = m.id_mhs
+        JOIN mahasiswa m ON k.id_mahasiswa = m.id_mahasiswa
         LEFT JOIN kelas ON m.id_kelas = kelas.id_kelas
         WHERE m.id_dosen_wali = ?
+        GROUP BY k.id_mahasiswa
         ORDER BY k.status_validasi DESC, m.nim ASC
     ";
     $stmt_krs = $pdo->prepare($query_krs);
@@ -61,7 +62,7 @@ try {
                     <tr>
                         <th class="py-3 ps-4" width="20%">Mahasiswa</th>
                         <th width="15%">Kelas</th>
-                        <th width="20%">Semester / Tahun</th>
+                        <th width="20%">Tahun Akademik</th>
                         <th width="20%" class="text-center">Status Validasi</th>
                         <th width="25%" class="text-center">Aksi Operasional</th>
                     </tr>
@@ -71,15 +72,14 @@ try {
                         <?php foreach ($list_krs as $row): ?>
                             <tr>
                                 <td class="py-3 ps-4">
-                                    <span class="d-block fw-bold text-dark"><?= htmlspecialchars($row['nama_mhs']); ?></span>
+                                    <span class="d-block fw-bold text-dark"><?= htmlspecialchars($row['nama_mahasiswa']); ?></span>
                                     <span class="text-muted font-monospace small"><?= htmlspecialchars($row['nim']); ?></span>
                                 </td>
                                 <td>
                                     <span class="badge border bg-light text-dark rounded-3 px-2 py-1 fw-semibold"><?= htmlspecialchars($row['nama_kelas'] ?? 'Belum Diplot'); ?></span>
                                 </td>
                                 <td class="text-dark">
-                                    <span class="fw-medium">Semester <?= htmlspecialchars($row['semester'] ?? '-'); ?></span>
-                                    <div class="small text-muted"><?= htmlspecialchars($row['tahun_akademik'] ?? '-'); ?></div>
+                                    <div class="fw-medium"><?= htmlspecialchars($row['tahun_akademik'] ?? '-'); ?></div>
                                 </td>
                                 <td class="text-center">
                                     <?php if (($row['status_validasi'] ?? 'Pending') == 'Disetujui'): ?>
@@ -92,7 +92,7 @@ try {
                                     <?php if (($row['status_validasi'] ?? 'Pending') != 'Disetujui'): ?>
                                         <form method="POST" action="" onsubmit="return confirm('Apakah Anda yakin ingin menyetujui ajuan KRS mahasiswa ini?');">
                                             <input type="hidden" name="id_krs" value="<?= $row['id_krs']; ?>">
-                                            <button type="submit" name="setujui_krs" class=\"btn btn-sm btn-success px-3 rounded-3 fw-semibold shadow-sm\">
+                                            <button type="submit" name="setujui_krs" class="btn btn-sm btn-success px-3 rounded-3 fw-semibold shadow-sm">
                                                 <i class="fa-solid fa-check-double me-1"></i> Setujui KRS
                                             </button>
                                         </form>

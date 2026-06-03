@@ -8,15 +8,16 @@ middleware(['admin']);
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
-// 1. TAMBAH MATA KULIAH BARU
+// 1. TAMBAH MATA KULIAH BARU (FIX BUG #J)
 if ($action === 'insert_mk' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $kode_mk  = sanitize($_POST['kode_mk']);
     $nama_mk  = sanitize($_POST['nama_mk']);
     $sks      = (int)$_POST['sks'];
+    $jam      = (int)($_POST['jam'] ?? $sks); // Ambil dari form, jika tidak ada pakai fallback nilai SKS
     $semester = (int)$_POST['semester'];
 
-    $stmt = $pdo->prepare("INSERT INTO mata_kuliah (kode_mk, nama_mk, sks, semester) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$kode_mk, $nama_mk, $sks, $semester]);
+    $stmt = $pdo->prepare("INSERT INTO mata_kuliah (kode_mk, nama_mk, sks, jam, semester) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$kode_mk, $nama_mk, $sks, $jam, $semester]);
 
     log_activity($_SESSION['id_user'], "Menambah data mata kuliah baru: $nama_mk ($kode_mk)");
     header("Location: index.php#panel-mk");
@@ -66,7 +67,7 @@ if ($action === 'delete_jadwal') {
     exit();
 }
 
-// 5. REGISTRASI KRS MANUAL OLEH ADMIN
+// 5. REGISTRASI KRS MANUAL OLEH ADMIN (FIX BUG #C)
 if ($action === 'insert_krs_manual' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_mhs    = $_POST['id_mahasiswa'];
     $id_jadwal = $_POST['id_jadwal'];
@@ -76,9 +77,16 @@ if ($action === 'insert_krs_manual' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $get_sem->execute([$id_jadwal]);
     $id_semester = $get_sem->fetchColumn();
 
+    // Ambil id_user dari mahasiswa (Tambahan sesuai panduan Bug #C)
+    $get_user = $pdo->prepare("SELECT id_user FROM mahasiswa WHERE id_mahasiswa = ?");
+    $get_user->execute([$id_mhs]);
+    $id_user_mhs = $get_user->fetchColumn();
+
     try {
-        $stmt = $pdo->prepare("INSERT INTO krs (id_mahasiswa, id_jadwal, id_semester, status_krs) VALUES (?, ?, ?, 'Disetujui')");
-        $stmt->execute([$id_mhs, $id_jadwal, $id_semester]);
+        // Query diubah untuk menyertakan id_user, tahun_akademik, dan status_validasi sesuai panduan
+        $stmt = $pdo->prepare("INSERT INTO krs (id_user, id_mahasiswa, id_jadwal, id_semester, tahun_akademik, status_krs, status_validasi) 
+                               VALUES (?, ?, ?, ?, '2025/2026-Ganjil', 'disetujui', 'Disetujui')");
+        $stmt->execute([$id_user_mhs, $id_mhs, $id_jadwal, $id_semester]);
         log_activity($_SESSION['id_user'], "Mendaftarkan KRS manual mahasiswa ID: $id_mhs");
     } catch (Exception $e) {
         // Mencegah error duplikasi data jika di klik berulang kali
@@ -101,24 +109,28 @@ if ($action === 'drop_krs') {
     exit();
 }
 
-// 7. SIMPAN / UPDATE LEMBAR PRESENSI MAHASISWA
+// 7. SIMPAN / UPDATE LEMBAR PRESENSI MAHASISWA (FIX BUG #D)
 if ($action === 'simpan_absensi' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_jadwal = $_POST['id_jadwal'];
     $pertemuan = (int)$_POST['pertemuan'];
     $status_absen = $_POST['status_absen'] ?? []; 
     $tanggal_sekarang = date('Y-m-d');
 
-    foreach ($status_absen as $id_krs => $status) {
-        $check = $pdo->prepare("SELECT id_presensi FROM presensi WHERE id_krs = ? AND pertemuan_ke = ?");
-        $check->execute([$id_krs, $pertemuan]);
+    // Mengubah perulangan dari yang tadinya $id_krs menjadi $id_mahasiswa sesuai panduan Bug #D
+    foreach ($status_absen as $id_mahasiswa => $status) {
+        // Pengecekan presensi berdasarkan id_mahasiswa, id_jadwal, dan pertemuan_ke
+        $check = $pdo->prepare("SELECT id_presensi FROM presensi 
+                               WHERE id_mahasiswa = ? AND id_jadwal = ? AND pertemuan_ke = ?");
+        $check->execute([$id_mahasiswa, $id_jadwal, $pertemuan]);
         $id_presensi = $check->fetchColumn();
 
         if ($id_presensi) {
             $update = $pdo->prepare("UPDATE presensi SET status_hadir = ?, tanggal = ? WHERE id_presensi = ?");
             $update->execute([$status, $tanggal_sekarang, $id_presensi]);
         } else {
-            $insert = $pdo->prepare("INSERT INTO presensi (id_krs, pertemuan_ke, tanggal, status_hadir) VALUES (?, ?, ?, ?)");
-            $insert->execute([$id_krs, $pertemuan, $tanggal_sekarang, $status]);
+            $insert = $pdo->prepare("INSERT INTO presensi (id_jadwal, id_mahasiswa, pertemuan_ke, tanggal, status_hadir) 
+                                    VALUES (?, ?, ?, ?, ?)");
+            $insert->execute([$id_jadwal, $id_mahasiswa, $pertemuan, $tanggal_sekarang, $status]);
         }
     }
 
