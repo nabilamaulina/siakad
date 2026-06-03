@@ -54,8 +54,48 @@ if (!empty($session_username)) {
     }
 }
 
-// Filter semester yang sedang aktif dilihat oleh mahasiswa
-$sem_filter = isset($_GET['semester']) ? trim($_GET['semester']) : $semester_mahasiswa;
+// =========================================================================
+// 🔄 DETEKSI SEMESTER AKTIF KAMPUS (GANJIL / GENAP)
+// =========================================================================
+$jenis_semester_aktif = 'Genap'; // Default fallback jika tidak terdeteksi
+$id_semester_valid = null;
+
+try {
+    // Ambil data semester yang berstatus aktif
+    $stmt_sem_aktif = $pdo->query("SELECT id_semester, nama_semester FROM semester WHERE status = 'aktif' OR status = 'Aktif' LIMIT 1");
+    $sem_aktif_data = $stmt_sem_aktif->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$sem_aktif_data) {
+        $stmt_sem_aktif = $pdo->query("SELECT id_semester, nama_semester FROM semester LIMIT 1");
+        $sem_aktif_data = $stmt_sem_aktif->fetch(PDO::FETCH_ASSOC);
+    }
+
+    if ($sem_aktif_data) {
+        $id_semester_valid = $sem_aktif_data['id_semester'];
+        // Cek apakah nama semester mengandung kata 'Ganjil'
+        if (stripos($sem_aktif_data['nama_semester'], 'Ganjil') !== false) {
+            $jenis_semester_aktif = 'Ganjil';
+        } else {
+            $jenis_semester_aktif = 'Genap';
+        }
+    }
+} catch (Exception $e) {
+    // Biarkan fallback berjalan jika error
+}
+
+// Filter semester yang dipilih oleh mahasiswa via dropdown (1 - 8)
+$sem_filter = isset($_GET['semester']) ? (int)$_GET['semester'] : (int)$semester_mahasiswa;
+
+// 🔒 VALIDASI KESESUAIAN TIPE SEMESTER (Ganjil/Genap)
+// Cek apakah pilihan mahasiswa ganjil/genap-nya klop dengan semester aktif kampus
+$is_pilihan_ganjil = ($sem_filter % 2 !== 0); // true jika pilih semester 1,3,5,7
+
+$tampilkan_data = false;
+if ($jenis_semester_aktif === 'Ganjil' && $is_pilihan_ganjil) {
+    $tampilkan_data = true; // Musim ganjil, mahasiswa pilih ganjil -> OK
+} elseif ($jenis_semester_aktif === 'Genap' && !$is_pilihan_ganjil) {
+    $tampilkan_data = true; // Musim genap, mahasiswa pilih genap -> OK
+}
 
 // =========================================================================
 // 📥 PROSES AKSI: TAMBAH MATAKULIAH (CREATE)
@@ -68,40 +108,18 @@ if (isset($_POST['action_ambil_mk'])) {
         $msg_text = 'Gagal mengambil data autentikasi. Sesi login Anda tidak terelasi dengan benar di database.';
     } else {
         try {
-            // SOLUSI: Cari id_semester yang valid (Primary Key) dari tabel semester yang berstatus aktif/sesuai
-            // Kita coba cari yang kolom statusnya 'aktif' atau 'Aktif'. Jika tidak ada kolom status, kita ambil ID pertama.
-            $stmt_sem_id = $pdo->query("SELECT id_semester FROM semester WHERE status = 'aktif' OR status = 'Aktif' LIMIT 1");
-            $sem_data = $stmt_sem_id->fetch(PDO::FETCH_ASSOC);
-            
-            // Jika pencarian status aktif gagal, ambil id_semester acak/teratas agar lolos Foreign Key
-            if (!$sem_data) {
-                $stmt_sem_id = $pdo->query("SELECT id_semester FROM semester LIMIT 1");
-                $sem_data = $stmt_sem_id->fetch(PDO::FETCH_ASSOC);
-            }
-            
-            $id_semester_valid = $sem_data ? $sem_data['id_semester'] : null;
-
             if (!$id_semester_valid) {
-                throw new Exception("Tabel 'semester' Anda kosong. Silakan isi master data semester terlebih dahulu di database.");
+                throw new Exception("Data master semester aktif tidak ditemukan di database.");
             }
 
             // Cek duplikasi KRS berdasarkan id_mahasiswa & id_jadwal
-            $stmt_cek = $pdo->prepare("
-                SELECT id_krs
-                FROM krs
-                WHERE id_mahasiswa = ?
-                AND id_jadwal = ?
-            ");
-            $stmt_cek->execute([
-                $id_mahasiswa_asli,
-                $id_jadwal
-            ]);
+            $stmt_cek = $pdo->prepare("SELECT id_krs FROM krs WHERE id_mahasiswa = ? AND id_jadwal = ?");
+            $stmt_cek->execute([$id_mahasiswa_asli, $id_jadwal]);
 
             if ($stmt_cek->rowCount() > 0) {
                 $msg_status = 'warning';
                 $msg_text = 'Jadwal mata kuliah ini sudah ada di dalam lembar KRS Anda.';
             } else {
-                // Gunakan id_semester_valid hasil query penyesuaian di atas
                 $stmt_add = $pdo->prepare("
                     INSERT INTO krs (
                         id_user,
@@ -118,8 +136,8 @@ if (isset($_POST['action_ambil_mk'])) {
                     $id_user_login,
                     $id_mahasiswa_asli,
                     $id_jadwal,
-                    '2025/2026-Ganjil',
-                    $id_semester_valid,     // Menggunakan ID asli dari tabel semester
+                    '2025/2026-' . $jenis_semester_aktif,
+                    $id_semester_valid,
                     'pending',
                     'Pending'
                 ]);
@@ -152,36 +170,37 @@ if (isset($_POST['action_batal_mk'])) {
 }
 
 // =========================================================================
-// 📥 AMBIL DATA MATA KULIAH Ditawarkan & KRS Diambil
+// 📥 AMBIL DATA MATA KULIAH DITAWARKAN & KRS Diambil
 // =========================================================================
 $available_mk = [];
 $taken_krs = [];
 try {
-    // Mengambil Jadwal Kuliah Berdasarkan Tingkat Semester Mata Kuliah
-    $stmt_av = $pdo->prepare("
-        SELECT
-            j.id_jadwal,
-            j.hari,
-            j.jam_mulai,
-            j.jam_selesai,
-            j.ruangan,
-            d.nama_dosen,
-            mk.id_mk,
-            mk.kode_mk,
-            mk.nama_mk,
-            mk.sks,
-            mk.semester
-        FROM jadwal j
-        JOIN mata_kuliah mk ON j.id_mk = mk.id_mk
-        LEFT JOIN dosen d ON j.id_dosen = d.id_dosen
-        WHERE mk.semester = ?
-        ORDER BY mk.nama_mk ASC
-    ");
+    // Hanya lakukan query ke database JIKA pilihan semester klop dengan tahun pembelajaran berjalan
+    if ($tampilkan_data === true) {
+        $stmt_av = $pdo->prepare("
+            SELECT
+                j.id_jadwal,
+                j.hari,
+                j.jam_mulai,
+                j.jam_selesai,
+                j.ruangan,
+                d.nama_dosen,
+                mk.id_mk,
+                mk.kode_mk,
+                mk.nama_mk,
+                mk.sks,
+                mk.semester
+            FROM jadwal j
+            JOIN mata_kuliah mk ON j.id_mk = mk.id_mk
+            LEFT JOIN dosen d ON j.id_dosen = d.id_dosen
+            WHERE mk.semester = ?
+            ORDER BY mk.nama_mk ASC
+        ");
+        $stmt_av->execute([$sem_filter]);
+        $available_mk = $stmt_av->fetchAll(PDO::FETCH_ASSOC);
+    }
 
-    $stmt_av->execute([$sem_filter]);
-    $available_mk = $stmt_av->fetchAll(PDO::FETCH_ASSOC);
-
-    // Ambil data KRS yang sudah diambil oleh mahasiswa
+    // Ambil data KRS yang sudah diambil oleh mahasiswa (ini tetap muncul)
     if ($id_mahasiswa_asli > 0) {
         $stmt_tk = $pdo->prepare("
             SELECT
@@ -195,7 +214,6 @@ try {
             JOIN mata_kuliah mk ON j.id_mk = mk.id_mk
             WHERE k.id_mahasiswa = ?
         ");
-
         $stmt_tk->execute([$id_mahasiswa_asli]);
         $taken_krs = $stmt_tk->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -216,11 +234,14 @@ try {
     <div class="col-xl-7">
         <div class="card border-0 shadow-sm bg-white rounded-3">
             <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
-                <h6 class="mb-0 fw-bold" style="color:#245358;"><i class="fa-solid fa-list-check me-2"></i>Mata Kuliah Ditawarkan</h6>
+                <div class="d-flex align-items-center gap-2">
+                    <h6 class="mb-0 fw-bold" style="color:#245358;"><i class="fa-solid fa-list-check me-2"></i>Mata Kuliah Ditawarkan</h6>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Periode <?= $jenis_semester_aktif; ?></span>
+                </div>
                 <form method="GET" id="formSemester">
                     <select name="semester" class="form-select form-select-sm fw-bold" onchange="document.getElementById('formSemester').submit();" style="width: 140px; border-color: #245358;">
                         <?php for ($i = 1; $i <= 8; $i++): ?>
-                            <option value="<?= $i; ?>" <?= (int)$sem_filter === $i ? 'selected' : ''; ?>>Semester <?= $i; ?></option>
+                            <option value="<?= $i; ?>" <?= $sem_filter === $i ? 'selected' : ''; ?>>Semester <?= $i; ?></option>
                         <?php endfor; ?>
                     </select>
                 </form>
@@ -236,7 +257,7 @@ try {
                             </tr>
                         </thead>
                         <tbody style="font-size:13px;">
-                            <?php if (!empty($available_mk)): foreach ($available_mk as $row_mk): ?>
+                            <?php if ($tampilkan_data === true && !empty($available_mk)): foreach ($available_mk as $row_mk): ?>
                                     <tr class="border-bottom border-light">
                                         <td class="ps-4">
                                             <span class="fw-bold text-dark d-block"><?= htmlspecialchars($row_mk['nama_mk']); ?></span>
@@ -255,7 +276,7 @@ try {
                                 <tr>
                                     <td colspan="3" class="text-center py-5 text-muted">
                                         <i class="fa-solid fa-folder-open d-block fs-2 mb-2 text-muted"></i>
-                                        Tidak ada data mata kuliah di semester <?= htmlspecialchars($sem_filter); ?>.
+                                        Mata kuliah tidak ditawarkan pada periode semester <strong><?= $jenis_semester_aktif; ?></strong> saat ini.
                                     </td>
                                 </tr>
                             <?php endif; ?>
