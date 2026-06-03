@@ -96,10 +96,10 @@ try {
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm" 
                                              style="width: 36px; height: 36px; background: linear-gradient(135deg, #245358, #3b7b83); font-size: 12px; letter-spacing: 0.5px;">
-                                            <?= strtoupper(substr($mhs['nama_mhs'] ?? 'MM', 0, 2)); ?>
+                                            <?= strtoupper(substr($mhs['nama_mahasiswa'] ?? 'MM', 0, 2)); ?>
                                         </div>
                                         <div>
-                                            <span class="d-block fw-semibold text-dark"><?= htmlspecialchars($mhs['nama_mhs']); ?></span>
+                                            <span class="d-block fw-semibold text-dark"><?= htmlspecialchars($mhs['nama_mahasiswa']); ?></span>
                                         </div>
                                     </div>
                                 </td>

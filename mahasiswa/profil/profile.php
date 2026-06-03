@@ -14,7 +14,7 @@ require_once __DIR__ . '/../../config/database.php';
 $tabel_mahasiswa    = 'mahasiswa';        // Nama tabel profil mahasiswa Anda
 $tabel_user         = 'user';             // Nama tabel kredensial login user Anda
 $kolom_id_mhs       = 'id_user';          // Kolom primary key / foreign key penghubung mahasiswa
-$kolom_nama_mhs     = 'nama_mahasiswa';   // Kolom nama mahasiswa
+$kolom_nama_mahasiswa     = 'nama_mahasiswa';   // Kolom nama mahasiswa
 $kolom_nim_mhs      = 'nim';              // Kolom NIM mahasiswa
 $kolom_email_mhs    = 'email';            // Kolom email mahasiswa
 $kolom_hp_mhs       = 'no_hp';            // Kolom nomor handphone mahasiswa
