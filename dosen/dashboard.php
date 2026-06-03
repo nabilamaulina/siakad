@@ -12,7 +12,6 @@ require_once __DIR__ . '/templates/sidebar.php';
 require_once __DIR__ . '/../config/database.php';
 
 // Ambil data session secara dinamis
-$nama_dosen = $_SESSION['nama_user'] ?? $_SESSION['username'] ?? 'Dosen Pengajar';
 $id_user_dosen = $_SESSION['id_user'] ?? 0;
 
 // Fitur Sapaan Otomatis Berdasarkan Jam Laptop/Server Saat Ini
@@ -54,6 +53,7 @@ $thn_ini  = date('Y');
 $tanggal_lengkap = "$hari_ini, $tgl_ini $bln_ini $thn_ini";
 
 // Inisialisasi awal variabel dengan nilai default
+$nama_dosen = 'Dosen Pengajar'; // Default fallback jika data tidak ketemu
 $count_mk_dosen = 0;
 $count_mhs_bimbingan = 0;
 $count_kelas_aktif = 0;
@@ -61,11 +61,19 @@ $agenda_mengajar = [];
 
 // --- QUERY DATA AGREGAT REAL DARI DATABASE ---
 try {
-    // Ambil ID Dosen terlebih dahulu berdasarkan id_user session
-    $stmt_dosen = $pdo->prepare("SELECT id_dosen FROM dosen WHERE id_user = ?");
+    // Ambil ID Dosen DAN NAMA DOSEN sekaligus berdasarkan id_user session
+    $stmt_dosen = $pdo->prepare("SELECT id_dosen, nama_dosen FROM dosen WHERE id_user = ?");
     $stmt_dosen->execute([$id_user_dosen]);
     $data_dosen = $stmt_dosen->fetch(PDO::FETCH_ASSOC);
+    
     $id_dosen = $data_dosen['id_dosen'] ?? 0;
+    
+    // JIKA NAMA DOSEN ADA DI DATABASE, GUNAKAN. JIKA TIDAK, PAKAI SESSION SEBAGAI FALLBACK
+    if (!empty($data_dosen['nama_dosen'])) {
+        $nama_dosen = $data_dosen['nama_dosen'];
+    } else {
+        $nama_dosen = $_SESSION['nama_user'] ?? $_SESSION['username'] ?? 'Dosen Pengajar';
+    }
 
     // 1. Hitung Mata Kuliah yang diampu oleh Dosen ini
     $stmt_mk = $pdo->prepare("SELECT COUNT(DISTINCT id_mk) FROM jadwal WHERE id_dosen = ?");
