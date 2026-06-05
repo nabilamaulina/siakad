@@ -11,25 +11,25 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 // Ambil nama mahasiswa dari database
 $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
+$foto_mhs = 'default.png'; // Default awal jika tidak ada di DB
 
 try {
-   $stmt = $pdo->prepare("
-    SELECT nama_mahasiswa, foto
-    FROM mahasiswa
-    WHERE id_user = ?
-    LIMIT 1
-");
+    $stmt = $pdo->prepare("
+        SELECT nama_mahasiswa, foto
+        FROM mahasiswa
+        WHERE id_user = ?
+        LIMIT 1
+    ");
     
     $stmt->execute([$_SESSION['id_user']]);
     $mhs = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if ($mhs) {
-    $nama_mhs_aktif = $mhs['nama_mahasiswa'];
-
-    if (!empty($mhs['foto'])) {
-        $foto_mhs = $mhs['foto'];
+    if ($mhs) {
+        $nama_mhs_aktif = $mhs['nama_mahasiswa'];
+        if (!empty($mhs['foto'])) {
+            $foto_mhs = $mhs['foto'];
+        }
     }
-}
 
 } catch (Exception $e) {
     $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
@@ -54,7 +54,6 @@ $base_path = $is_inside_folder ? '../' : '';
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.3s;
     flex-shrink: 0;
-
     position: sticky;
     top: 0;
 }
@@ -151,19 +150,16 @@ $base_path = $is_inside_folder ? '../' : '';
             </h4>
         </div>
 
-<<<<<<< HEAD
         <a href="<?= $base_path; ?>profil/edit_profil.php" class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
-            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
-                 class="rounded-circle mb-2" 
-                 style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
-=======
-<a href="<?= $base_path; ?>profil/edit_profil.php"
-    $foto_url = '/siakad/assets/uploads/foto_mahasiswa/';
-   class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
-<img src="<?= $base_path; ?>../assets/uploads/foto_mahasiswa/<?= htmlspecialchars($foto_mhs); ?>"
-     class="rounded-circle mb-2"
-     style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
->>>>>>> bbbba3bf433e2cdf8cd82b9cc988144246231094
+            <?php if ($foto_mhs === 'default.png'): ?>
+                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
+                     class="rounded-circle mb-2" 
+                     style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+            <?php else: ?>
+                <img src="<?= $base_path; ?>../assets/uploads/foto_mahasiswa/<?= htmlspecialchars($foto_mhs); ?>"
+                     class="rounded-circle mb-2"
+                     style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+            <?php endif; ?>
             
             <div class="user-info">
                 <h6 class="text-white fw-bold mb-1" style="font-size:14px;">
@@ -185,7 +181,6 @@ $base_path = $is_inside_folder ? '../' : '';
             </a>
 
             <?php 
-            // Tambahkan pengecekan untuk riwayat_absensi.php agar dropdown Layanan Akademik tetap terbuka
             $is_akademik_active = (
                 $current_page == 'jadwal.php' ||
                 $current_page == 'absensi.php' ||
@@ -196,7 +191,7 @@ $base_path = $is_inside_folder ? '../' : '';
             <a class="list-group-item list-group-item-action justify-content-between <?= $is_akademik_active ? '' : 'collapsed'; ?>"
                data-bs-toggle="collapse" data-bs-target="#menuAkademikMhs" role="button" aria-expanded="<?= $is_akademik_active ? 'true' : 'false'; ?>">
                 <div class="d-flex align-items-center">
-                    <i class="fa-solid fa-layer-group me-3" style="width: 20px;"></i>Layanan Akademik
+                    <i class="fa-solid fa-layer-group me-3" style="width: 20px;"></i>Layanan Academic
                 </div>
                 <i class="fa-solid fa-chevron-down small chevron-arrow" style="font-size: 10px;"></i>
             </a>
