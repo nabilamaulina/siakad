@@ -1,4 +1,3 @@
-```php
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -326,4 +325,3 @@ $my_schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <?php require_once __DIR__ . '/../../templates/footer.php'; ?>
-```

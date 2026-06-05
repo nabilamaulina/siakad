@@ -20,14 +20,17 @@ $is_inside_folder = (strpos($request_uri, '/akademik/') !== false ||
 $base_path = $is_inside_folder ? '../' : '';
 ?>
 <style>
-    #sidebar-wrapper {
-        min-height: 100vh;
-        width: 260px;
-        background-color: #245358; 
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-        transition: all 0.3s;
-        flex-shrink: 0;
-    }
+#sidebar-wrapper {
+    height: 100vh;
+    width: 260px;
+    background-color: #245358;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s;
+    flex-shrink: 0;
+
+    position: sticky;
+    top: 0;
+}
     
     .user-profile-sidebar {
         display: block;
@@ -104,17 +107,16 @@ $base_path = $is_inside_folder ? '../' : '';
         display: none;
     }
 
-    .sidebar-footer {
-        position: absolute;
-        bottom: 0;
-        width: 260px;
-        padding: 1rem;
-        background: #245358;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
+.sidebar-footer {
+    margin-top: auto;
+    width: 100%;
+    padding: 1rem;
+    background: #245358;
+    border-top: 1px solid rgba(255,255,255,.08);
+}
 </style>
 
-<div id="sidebar-wrapper" class="position-relative d-flex flex-column justify-content-between">
+<div id="sidebar-wrapper" class="d-flex flex-column">
     <div>
         <div class="text-center py-4 border-bottom" style="border-color: rgba(255,255,255,0.1) !important;">
             <h4 class="text-white fw-bold mb-0">
@@ -146,9 +148,7 @@ $base_path = $is_inside_folder ? '../' : '';
 (
     $current_page == 'jadwal.php' ||
     $current_page == 'absensi.php' ||
-    $current_page == 'khs.php' ||
-    $current_page == 'krs.php' ||
-    $current_page == 'cetak_krs.php'
+    $current_page == 'krs.php'
 ); ?>
             <a class="list-group-item list-group-item-action justify-content-between <?= $is_akademik_active ? '' : 'collapsed'; ?>"
                data-bs-toggle="collapse" data-bs-target="#menuAkademikMhs" role="button" aria-expanded="<?= $is_akademik_active ? 'true' : 'false'; ?>">
@@ -164,8 +164,6 @@ $base_path = $is_inside_folder ? '../' : '';
                     <a class="list-group-item list-group-item-action <?= ($current_page == 'absensi.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/absensi.php">
     <i class="fa-solid fa-user-check me-2"></i>Riwayat Absensi
 </a>
-                    <a class="list-group-item list-group-item-action <?= ($current_page == 'khs.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/khs.php"><i class="fa-solid fa-square-poll-horizontal me-2"></i>Hasil Studi & KHS</a>
-                    <a class="list-group-item list-group-item-action <?= ($current_page == 'cetak_krs.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/cetak_krs.php"><i class="fa-solid fa-print me-2"></i>Cetak Kertas KRS</a>
                 </div>
             </div>
 
@@ -203,7 +201,9 @@ $is_profil_active =
     </div>
 </div>
 
-<div id="page-content-wrapper" class="d-flex flex-column flex-grow-1">
+<div id="page-content-wrapper"
+     class="d-flex flex-column flex-grow-1"
+     style="min-height:100vh;">
     
     <nav class="navbar navbar-expand navbar-light bg-white px-4 py-3 border-bottom shadow-sm" style="min-height: 65px;">
         <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
