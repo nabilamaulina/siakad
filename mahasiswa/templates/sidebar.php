@@ -5,11 +5,33 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/../../config/database.php';
+
 $current_page = basename($_SERVER['PHP_SELF']);
 
-// Mengembalikan info pengguna ke Session Mahasiswa
-$nama_mhs_aktif = $_SESSION['nama_user'] ?? $_SESSION['username'] ?? 'Mahasiswa';
-$nim_mhs_aktif  = $_SESSION['username'] ?? 'NIM';
+//Ambil nama mahasiswa dari database
+$nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
+
+try {
+    $stmt = $pdo->prepare("
+        SELECT nama_mahasiswa
+        FROM mahasiswa
+        WHERE id_user = ?
+        LIMIT 1
+    ");
+    
+    $stmt->execute([$_SESSION['id_user']]);
+    $mhs = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($mhs) {
+        $nama_mhs_aktif = $mhs['nama_mahasiswa'];
+    }
+
+} catch (Exception $e) {
+    $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
+}
+
+$nim_mhs_aktif = $_SESSION['username'] ?? 'NIM';
 
 // Deteksi lokasi folder saat ini berdasarkan struktur gambar Anda
 $request_uri = $_SERVER['REQUEST_URI'];
@@ -130,10 +152,16 @@ $base_path = $is_inside_folder ? '../' : '';
                  class="rounded-circle mb-2" 
                  style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
             
-            <div class="user-info">
-                <h6 class="text-white mb-0 fw-bold small"><?= htmlspecialchars($nama_mhs_aktif); ?></h6>
-                <span class="badge bg-info text-dark" style="font-size: 10px; padding: 2px 8px; font-weight:600;"><?= htmlspecialchars($nim_mhs_aktif); ?></span>
-            </div>
+<div class="user-info">
+    <h6 class="text-white fw-bold mb-1" style="font-size:14px;">
+        <?= htmlspecialchars($nama_mhs_aktif); ?>
+    </h6>
+
+    <span class="badge bg-info text-dark px-2 py-1"
+          style="font-size:11px;">
+        <?= htmlspecialchars($nim_mhs_aktif); ?>
+    </span>
+</div>
         </a>
 
         <hr class="sidebar-divider my-2 mx-3" style="border-color: rgba(255,255,255,0.1);">
