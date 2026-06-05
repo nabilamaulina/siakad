@@ -13,22 +13,27 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
 
 try {
-    $stmt = $pdo->prepare("
-        SELECT nama_mahasiswa
-        FROM mahasiswa
-        WHERE id_user = ?
-        LIMIT 1
-    ");
+   $stmt = $pdo->prepare("
+    SELECT nama_mahasiswa, foto
+    FROM mahasiswa
+    WHERE id_user = ?
+    LIMIT 1
+");
     
     $stmt->execute([$_SESSION['id_user']]);
     $mhs = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($mhs) {
-        $nama_mhs_aktif = $mhs['nama_mahasiswa'];
+if ($mhs) {
+    $nama_mhs_aktif = $mhs['nama_mahasiswa'];
+
+    if (!empty($mhs['foto'])) {
+        $foto_mhs = $mhs['foto'];
     }
+}
 
 } catch (Exception $e) {
     $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
+    $foto_mhs = 'default.png';
 }
 
 $nim_mhs_aktif = $_SESSION['username'] ?? 'NIM';
@@ -146,10 +151,19 @@ $base_path = $is_inside_folder ? '../' : '';
             </h4>
         </div>
 
+<<<<<<< HEAD
         <a href="<?= $base_path; ?>profil/edit_profil.php" class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
             <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
                  class="rounded-circle mb-2" 
                  style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+=======
+<a href="<?= $base_path; ?>profil/edit_profil.php"
+    $foto_url = '/siakad/assets/uploads/foto_mahasiswa/';
+   class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
+<img src="<?= $base_path; ?>../assets/uploads/foto_mahasiswa/<?= htmlspecialchars($foto_mhs); ?>"
+     class="rounded-circle mb-2"
+     style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+>>>>>>> bbbba3bf433e2cdf8cd82b9cc988144246231094
             
             <div class="user-info">
                 <h6 class="text-white fw-bold mb-1" style="font-size:14px;">
