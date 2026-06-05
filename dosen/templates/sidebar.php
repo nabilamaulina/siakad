@@ -116,17 +116,19 @@ $nama_dosen_aktif = $user_dosen['nama_dosen'] ?? $_SESSION['nama_user'] ?? 'Dose
                 </h4>
             </div>
 
-            <a href="<?= $base_path; ?>kinerja_dosen/profile.php" class="user-profile-sidebar text-center py-3 mb-2 d-block text-decoration-none">
-                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
-                     class="rounded-circle mb-2" 
-                     style="width: 55px; height: 55px; object-fit: cover; border: 2px solid rgba(255,255,255,0.2);">
-                
-                <div class="user-info">
-                    <h6 class="text-white mb-0 fw-bold small"><?= htmlspecialchars($nama_dosen_aktif); ?></h6>
-                    <span class="badge bg-success" style="font-size: 9px; padding: 2px 6px;">Dosen Pengajar</span>
-                </div>
-            </a>
+<div class="text-center py-3 mb-3">
 
+<img src="<?= $base_path; ?>../assets/uploads/foto_dosen/<?= htmlspecialchars($foto_dosen); ?>"
+class="rounded-circle mb-2"
+style="width:65px;height:65px;object-fit:cover;border:3px solid rgba(255,255,255,.2);"
+onerror="this.src='<?= $base_path; ?>../assets/uploads/foto_dosen/default.png';">
+
+<h6 class="text-white fw-bold mb-1">
+<?= htmlspecialchars($nama_dosen_aktif); ?>
+</h6>
+
+
+</div>
             <hr class="sidebar-divider my-1 mx-3" style="border-color: rgba(255,255,255,0.1);">
 
             <div class="list-group list-group-flush mt-1" style="max-height: calc(100vh - 260px); overflow-y: auto; padding-bottom: 5rem;">
@@ -135,34 +137,64 @@ $nama_dosen_aktif = $user_dosen['nama_dosen'] ?? $_SESSION['nama_user'] ?? 'Dose
                     <i class="fa-solid fa-chart-pie me-3" style="width: 20px;"></i>Dashboard Utama
                 </a>
 
-                <span class="menu-header-text">Akademik Mengajar</span>
-                <a class="list-group-item list-group-item-action <?= ($current_page == 'jadwal.php' || $current_page == 'presensi.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>akademik_mengajar/jadwal.php">
-                    <i class="fa-regular fa-calendar me-3" style="width: 20px;"></i>Jadwal & Absensi
-                </a>
-                <a class="list-group-item list-group-item-action <?= ($current_page == 'mata_kuliah.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>akademik_mengajar/mata_kuliah.php">
-                    <i class="fa-regular fa-file-lines me-3" style="width: 20px;"></i>Materi & Silabus
-                </a>
-                <a class="list-group-item list-group-item-action <?= ($current_page == 'nilai.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>akademik_mengajar/nilai.php">
-                    <i class="fa-regular fa-id-card me-3" style="width: 20px;"></i>Input Nilai Akhir
-                </a>
+                <a class="list-group-item list-group-item-action"
+   data-bs-toggle="collapse"
+   href="#menuAkademik">
 
-                <span class="menu-header-text">Perwalian / PA</span>
-                <a class="list-group-item list-group-item-action <?= ($current_page == 'bimbingan.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>perwalian/bimbingan.php">
-                    <i class="fa-solid fa-user-group me-3" style="width: 20px;"></i>Data Mahasiswa PA
-                </a>
-                <a class="list-group-item list-group-item-action <?= ($current_page == 'krs_validasi.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>perwalian/krs_validasi.php">
-                    <i class="fa-solid fa-file-signature me-3" style="width: 20px;"></i>Persetujuan KRS
-                </a>
+<i class="fa-solid fa-book me-3"></i>
+Akademik Mengajar
 
-                <span class="menu-header-text">Tugas Akhir</span>
-                <a class="list-group-item list-group-item-action <?= ($current_page == 'bimbingan_skripsi.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>tugas_akhir/bimbingan_skripsi.php">
-                    <i class="fa-solid fa-book-reader me-3" style="width: 20px;"></i>Bimbingan Skripsi
-                </a>
-                <a class="list-group-item list-group-item-action <?= ($current_page == 'jadwal_sidang.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>tugas_akhir/jadwal_sidang.php">
-                    <i class="fa-solid fa-gavel me-3" style="width: 20px;"></i>Penguji Sidang
-                </a>
+<i class="fa-solid fa-chevron-down ms-auto"></i>
+</a>
 
-                <span class="menu-header-text">Pengaturan</span>
+<div class="collapse show" id="menuAkademik">
+
+<a class="list-group-item list-group-item-action ps-5"
+href="<?= $base_path; ?>akademik_mengajar/jadwal.php">
+
+Jadwal & Absensi
+</a>
+
+<a class="list-group-item list-group-item-action ps-5"
+href="<?= $base_path; ?>akademik_mengajar/mata_kuliah.php">
+
+Materi & Silabus
+</a>
+
+<a class="list-group-item list-group-item-action ps-5"
+href="<?= $base_path; ?>akademik_mengajar/nilai.php">
+
+Input Nilai
+</a>
+
+</div>
+
+                <a class="list-group-item list-group-item-action"
+data-bs-toggle="collapse"
+href="#menuPA">
+
+<i class="fa-solid fa-users me-3"></i>
+Perwalian
+
+<i class="fa-solid fa-chevron-down ms-auto"></i>
+</a>
+
+<div class="collapse show" id="menuPA">
+
+<a href="<?= $base_path; ?>perwalian/bimbingan.php"
+class="list-group-item list-group-item-action ps-5">
+
+Data Mahasiswa PA
+</a>
+
+<a href="<?= $base_path; ?>perwalian/krs_validasi.php"
+class="list-group-item list-group-item-action ps-5">
+
+Persetujuan KRS
+</a>
+
+</div>
+
                 <a class="list-group-item list-group-item-action <?= ($current_page == 'profile.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>kinerja_dosen/profile.php">
                     <i class="fa-solid fa-sliders me-3" style="width: 20px;"></i>Profil & Akun
                 </a>
