@@ -13,22 +13,26 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
 
 try {
-    $stmt = $pdo->prepare("
-        SELECT nama_mahasiswa
-        FROM mahasiswa
-        WHERE id_user = ?
-        LIMIT 1
-    ");
+   $stmt = $pdo->prepare("
+    SELECT nama_mahasiswa, foto
+    FROM mahasiswa
+    WHERE id_user = ?
+    LIMIT 1
+");
     
     $stmt->execute([$_SESSION['id_user']]);
     $mhs = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($mhs) {
-        $nama_mhs_aktif = $mhs['nama_mahasiswa'];
-    }
+if ($mhs) {
+    $nama_mhs_aktif = $mhs['nama_mahasiswa'];
 
+    if (!empty($mhs['foto'])) {
+        $foto_mhs = $mhs['foto'];
+    }
+}
 } catch (Exception $e) {
     $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
+    $foto_mhs = 'default.png';
 }
 
 $nim_mhs_aktif = $_SESSION['username'] ?? 'NIM';
@@ -148,7 +152,7 @@ $base_path = $is_inside_folder ? '../' : '';
 
 <a href="<?= $base_path; ?>profil/edit_profil.php"
    class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
-            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
+           <img src="../../assets/uploads/foto_mahasiswa/<?= htmlspecialchars($foto_mhs); ?>"
                  class="rounded-circle mb-2" 
                  style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
             

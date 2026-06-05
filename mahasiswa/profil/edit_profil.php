@@ -39,17 +39,39 @@ if (!$mahasiswa) {
 if (isset($_POST['btn_simpan_profil'])) {
 
     try {
+        $foto_baru = $mahasiswa['foto'] ?? 'default.png';
 
-        $stmtUpdate = $pdo->prepare("
-            UPDATE mahasiswa
-            SET
-                nama_mahasiswa = ?,
-                email = ?,
-                tempat_lahir = ?,
-                tanggal_lahir = ?,
-                alamat = ?
-            WHERE id_user = ?
-        ");
+if (!empty($_FILES['foto']['name'])) {
+
+    $folder = "../../assets/uploads/foto_mahasiswa/";
+
+    if (!file_exists($folder)) {
+        mkdir($folder, 0777, true);
+    }
+
+    $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
+
+    $nama_file = time() . "_" . uniqid() . "." . $ext;
+
+    move_uploaded_file(
+        $_FILES['foto']['tmp_name'],
+        $folder . $nama_file
+    );
+
+    $foto_baru = $nama_file;
+}
+
+$stmtUpdate = $pdo->prepare("
+    UPDATE mahasiswa
+    SET
+        nama_mahasiswa = ?,
+        email = ?,
+        tempat_lahir = ?,
+        tanggal_lahir = ?,
+        alamat = ?,
+        foto = ?
+    WHERE id_user = ?
+");
 
         $stmtUpdate->execute([
             $_POST['nama_mahasiswa'],
@@ -57,6 +79,7 @@ if (isset($_POST['btn_simpan_profil'])) {
             $_POST['tempat_lahir'],
             $_POST['tanggal_lahir'],
             $_POST['alamat'],
+            $foto_baru,
             $id_user
         ]);
 
@@ -160,10 +183,11 @@ if (isset($_POST['btn_ubah_password'])) {
                         Data Profil
                     </h5>
                 </div>
+                
 
                 <div class="card-body">
 
-                    <form method="POST">
+                    <form method="POST" enctype="multipart/form-data">
 
                         <div class="mb-3">
                             <label class="form-label">
@@ -176,12 +200,33 @@ if (isset($_POST['btn_ubah_password'])) {
                                 value="<?= htmlspecialchars($mahasiswa['nim']) ?>"
                                 readonly
                             >
-                        </div>
+</div>
 
-                        <div class="mb-3">
-                            <label class="form-label">
-                                Nama Mahasiswa
-                            </label>
+<div class="mb-3 text-center">
+
+    <img
+        src="../../assets/uploads/foto_mahasiswa/<?= htmlspecialchars($mahasiswa['foto'] ?? 'default.png') ?>"
+        class="rounded-circle mb-3 border"
+        style="width:120px;height:120px;object-fit:cover;"
+    >
+
+    <label class="form-label d-block">
+        Foto Profil
+    </label>
+
+    <input
+        type="file"
+        name="foto"
+        class="form-control"
+        accept=".jpg,.jpeg,.png"
+    >
+
+</div>
+
+<div class="mb-3">
+    <label class="form-label">
+        Nama Mahasiswa
+    </label>
 
                             <input
                                 type="text"
