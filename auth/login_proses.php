@@ -61,14 +61,17 @@ if ($user && password_verify($password_input, $user['password'])) {
     // =========================================================================
     // 🚀 3. ALIKHAN HALAMAN SESUAI ROLE MASING-MASING
     // =========================================================================
-    if ($_SESSION['role'] === 'admin') {
-        header("Location: ../admin/dashboard.php");
-    } elseif ($_SESSION['role'] === 'dosen') {
-        header("Location: ../dosen/perwalian/krs_validasi.php");
-    } else {
-        header("Location: ../mahasiswa/akademik/krs.php");
-    }
-    exit;
+// =========================================================================
+// 🚀 3. ALIKHAN HALAMAN SESUAI ROLE MASING-MASING
+// =========================================================================
+if ($_SESSION['role'] === 'admin') {
+    header("Location: ../admin/dashboard.php");
+} elseif ($_SESSION['role'] === 'dosen') {
+    header("Location: ../dosen/dashboard.php"); // ← UBAH KE SINI
+} else {
+    header("Location: ../mahasiswa/akademik/krs.php");
+}
+exit;
 
 } else {
     // Jika login gagal

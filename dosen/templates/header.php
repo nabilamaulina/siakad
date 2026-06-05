@@ -1,34 +1,30 @@
 <?php
 // siakad/dosen/templates/header.php
 
-// 1. Memastikan session sudah dimulai
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Mengamankan pemuatan fungsi dan security jika file pendukung tersedia
+// 1. PROTEKSI UTAMA: Jika tidak ada session user ATAU role bukan dosen, langsung tendang ke login
+if (!isset($_SESSION['id_user']) || !isset($_SESSION['role']) || strtolower(trim($_SESSION['role'])) !== 'dosen') {
+    // Menggunakan path absolut/kembali ke folder auth/login.php secara presisi
+    // Deteksi manual posisi file untuk mencegah broken redirect link
+    $request_uri = $_SERVER['REQUEST_URI'];
+    $is_subfolder = (strpos($request_uri, '/akademik_mengajar/') !== false || 
+                     strpos($request_uri, '/perwalian/') !== false || 
+                     strpos($request_uri, '/kinerja_dosen/') !== false);
+                     
+    $redirect_path = $is_subfolder ? '../../auth/login.php' : '../auth/login.php';
+    header("Location: " . $redirect_path);
+    exit();
+}
+
+// 2. Memuat file pendukung sistem jika diperlukan
 $sec_path = __DIR__ . '/../../config/security.php';
 $fun_path = __DIR__ . '/../../config/function.php';
 
 if (file_exists($sec_path)) { require_once $sec_path; }
 if (file_exists($fun_path)) { require_once $fun_path; }
-
-/**
- * Mengamankan halaman secara dinamis berdasarkan role yang sedang login.
- */
-$role_aktif = isset($_SESSION['role']) ? strtolower(trim($_SESSION['role'])) : '';
-
-if (function_exists('middleware')) {
-    if ($role_aktif === 'admin') {
-        middleware(['admin']);
-    } elseif ($role_aktif === 'dosen') {
-        middleware(['dosen']);
-    } elseif ($role_aktif === 'mahasiswa') {
-        middleware(['mahasiswa']);
-    } else {
-        middleware(); 
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">

@@ -345,16 +345,6 @@ try {
                             </p>
                         </div>
                     </div>
-
-                    <div class="d-flex align-items-start gap-3 p-3 rounded-3 border-start border-3 border-primary" style="background-color: #f8fafc;">
-                        <div class="text-primary mt-1"><i class="fa-solid fa-circle-info fs-5"></i></div>
-                        <div>
-                            <h6 class="fw-bold mb-1 text-dark" style="font-size: 13px;">Pengajuan Proposal Skripsi</h6>
-                            <p class="text-muted mb-0" style="font-size: 11.5px; line-height: 1.5;">
-                                Pendaftaran dosen pembimbing utama untuk mahasiswa semester tua telah dibuka secara online di menu prodi.
-                            </p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

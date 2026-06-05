@@ -9,9 +9,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 // Deteksi lokasi folder saat ini agar link navigasi tidak pecah/salah jalur
 $request_uri = $_SERVER['REQUEST_URI'];
 $is_inside_folder = (strpos($request_uri, '/akademik_mengajar/') !== false || 
-                     strpos($request_uri, '/perwalian/') !== false || 
-                     strpos($request_uri, '/tugas_akhir/') !== false || 
-                     strpos($request_uri, '/kinerja_dosen/') !== false);
+                     strpos($request_uri, '/perwalian/') !== false);
 
 // Path acuan mundur ke folder utama jika sedang berada di dalam sub-folder
 $base_path = $is_inside_folder ? '../' : '';
@@ -116,19 +114,16 @@ $nama_dosen_aktif = $user_dosen['nama_dosen'] ?? $_SESSION['nama_user'] ?? 'Dose
                 </h4>
             </div>
 
-<div class="text-center py-3 mb-3">
+            <div class="text-center py-3 mb-3">
+                <img src="<?= $base_path; ?>../assets/uploads/foto_dosen/<?= htmlspecialchars($foto_dosen ?? ''); ?>"
+                class="rounded-circle mb-2"
+                style="width:65px;height:65px;object-fit:cover;border:3px solid rgba(255,255,255,.2);"
+                onerror="this.src='<?= $base_path; ?>../assets/uploads/foto_dosen/default.png';">
 
-<img src="<?= $base_path; ?>../assets/uploads/foto_dosen/<?= htmlspecialchars($foto_dosen); ?>"
-class="rounded-circle mb-2"
-style="width:65px;height:65px;object-fit:cover;border:3px solid rgba(255,255,255,.2);"
-onerror="this.src='<?= $base_path; ?>../assets/uploads/foto_dosen/default.png';">
-
-<h6 class="text-white fw-bold mb-1">
-<?= htmlspecialchars($nama_dosen_aktif); ?>
-</h6>
-
-
-</div>
+                <h6 class="text-white fw-bold mb-1">
+                <?= htmlspecialchars($nama_dosen_aktif); ?>
+                </h6>
+            </div>
             <hr class="sidebar-divider my-1 mx-3" style="border-color: rgba(255,255,255,0.1);">
 
             <div class="list-group list-group-flush mt-1" style="max-height: calc(100vh - 260px); overflow-y: auto; padding-bottom: 5rem;">
@@ -137,63 +132,44 @@ onerror="this.src='<?= $base_path; ?>../assets/uploads/foto_dosen/default.png';"
                     <i class="fa-solid fa-chart-pie me-3" style="width: 20px;"></i>Dashboard Utama
                 </a>
 
-                <a class="list-group-item list-group-item-action"
-   data-bs-toggle="collapse"
-   href="#menuAkademik">
+                <?php 
+                // Cek apakah URL mengandung folder akademik_mengajar untuk membuka dropdown otomatis
+                $is_akademik_active = (strpos($request_uri, '/akademik_mengajar/') !== false); 
+                ?>
+                <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#menuAkademik" aria-expanded="<?= $is_akademik_active ? 'true' : 'false'; ?>">
+                    <i class="fa-solid fa-book me-3"></i>Akademik Mengajar
+                    <i class="fa-solid fa-chevron-down ms-auto"></i>
+                </a>
 
-<i class="fa-solid fa-book me-3"></i>
-Akademik Mengajar
+                <div class="collapse <?= $is_akademik_active ? 'show' : ''; ?>" id="menuAkademik">
+                    <a class="list-group-item list-group-item-action ps-5 <?= ($current_page == 'jadwal.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>akademik_mengajar/jadwal.php">
+                        Jadwal & Absensi
+                    </a>
+                    <a class="list-group-item list-group-item-action ps-5 <?= ($current_page == 'mata_kuliah.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>akademik_mengajar/mata_kuliah.php">
+                        Materi & Silabus
+                    </a>
+                    <a class="list-group-item list-group-item-action ps-5 <?= ($current_page == 'nilai.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>akademik_mengajar/nilai.php">
+                        Input Nilai
+                    </a>
+                </div>
 
-<i class="fa-solid fa-chevron-down ms-auto"></i>
-</a>
+                <?php 
+                // Cek apakah URL mengandung folder perwalian untuk membuka dropdown otomatis
+                $is_perwalian_active = (strpos($request_uri, '/perwalian/') !== false); 
+                ?>
+                <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#menuPA" aria-expanded="<?= $is_perwalian_active ? 'true' : 'false'; ?>">
+                    <i class="fa-solid fa-users me-3"></i>Perwalian
+                    <i class="fa-solid fa-chevron-down ms-auto"></i>
+                </a>
 
-<div class="collapse show" id="menuAkademik">
-
-<a class="list-group-item list-group-item-action ps-5"
-href="<?= $base_path; ?>akademik_mengajar/jadwal.php">
-
-Jadwal & Absensi
-</a>
-
-<a class="list-group-item list-group-item-action ps-5"
-href="<?= $base_path; ?>akademik_mengajar/mata_kuliah.php">
-
-Materi & Silabus
-</a>
-
-<a class="list-group-item list-group-item-action ps-5"
-href="<?= $base_path; ?>akademik_mengajar/nilai.php">
-
-Input Nilai
-</a>
-
-</div>
-
-                <a class="list-group-item list-group-item-action"
-data-bs-toggle="collapse"
-href="#menuPA">
-
-<i class="fa-solid fa-users me-3"></i>
-Perwalian
-
-<i class="fa-solid fa-chevron-down ms-auto"></i>
-</a>
-
-<div class="collapse show" id="menuPA">
-
-<a href="<?= $base_path; ?>perwalian/bimbingan.php"
-class="list-group-item list-group-item-action ps-5">
-
-Data Mahasiswa PA
-</a>
-
-<a href="<?= $base_path; ?>perwalian/krs_validasi.php"
-class="list-group-item list-group-item-action ps-5">
-
-Persetujuan KRS
-</a>
-
-</div>
+                <div class="collapse <?= $is_perwalian_active ? 'show' : ''; ?>" id="menuPA">
+                    <a href="<?= $base_path; ?>perwalian/bimbingan.php" class="list-group-item list-group-item-action ps-5 <?= ($current_page == 'bimbingan.php') ? 'active-menu' : ''; ?>">
+                        Data Mahasiswa PA
+                    </a>
+                    <a href="<?= $base_path; ?>perwalian/krs_validasi.php" class="list-group-item list-group-item-action ps-5 <?= ($current_page == 'krs_validasi.php') ? 'active-menu' : ''; ?>">
+                        Persetujuan KRS
+                    </a>
+                </div>
 
                 <a class="list-group-item list-group-item-action <?= ($current_page == 'profile.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>kinerja_dosen/profile.php">
                     <i class="fa-solid fa-sliders me-3" style="width: 20px;"></i>Profil & Akun
