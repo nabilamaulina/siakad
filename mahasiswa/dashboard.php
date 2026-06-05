@@ -277,9 +277,6 @@ try {
                     <a href="akademik/krs.php" class="btn quick-link-btn text-start p-3 rounded-3 text-dark fw-semibold" style="font-size: 13px; text-decoration:none;">
                         <i class="fa-solid fa-pen-to-square me-2 text-primary"></i> Pengisian KRS Online
                     </a>
-                    <a href="akademik/khs.php" class="btn quick-link-btn text-start p-3 rounded-3 text-dark fw-semibold" style="font-size: 13px; text-decoration:none;">
-                        <i class="fa-solid fa-graduation-cap me-2 text-success"></i> Lihat & Cetak KHS (Nilai)
-                    </a>
                 </div>
             </div>
         </div>
@@ -289,5 +286,5 @@ try {
 </div> </div> 
 
 <?php
-require_once __DIR__ . '/templates/footer.php';
+require_once __DIR__ . '/../templates/footer.php';
 ?>

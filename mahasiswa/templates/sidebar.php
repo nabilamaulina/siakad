@@ -27,6 +27,7 @@ $base_path = $is_inside_folder ? '../' : '';
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.3s;
     flex-shrink: 0;
+
     position: sticky;
     top: 0;
 }
@@ -108,9 +109,10 @@ $base_path = $is_inside_folder ? '../' : '';
 
 .sidebar-footer {
     margin-top: auto;
+    width: 100%;
     padding: 1rem;
     background: #245358;
-    border-top: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid rgba(255,255,255,.08);
 }
 </style>
 
@@ -199,7 +201,9 @@ $is_profil_active =
     </div>
 </div>
 
-<div id="page-content-wrapper" class="d-flex flex-column flex-grow-1">
+<div id="page-content-wrapper"
+     class="d-flex flex-column flex-grow-1"
+     style="min-height:100vh;">
     
     <nav class="navbar navbar-expand navbar-light bg-white px-4 py-3 border-bottom shadow-sm" style="min-height: 65px;">
         <div class="container-fluid p-0 d-flex justify-content-between align-items-center">

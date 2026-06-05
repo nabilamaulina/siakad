@@ -4,6 +4,18 @@
 
         </div>
 
+        <footer
+            class="text-center py-4 border-top"
+            style="
+                background:#eef2f3;
+                color:#1f2937;
+                font-size:14px;
+            ">
+            © 2026 <strong>SOBAT IK</strong> -
+            Sistem Operasional & Basis Akademik Terpadu Ilmu Komputer.
+            All Rights Reserved.
+        </footer>
+
     </div>
 
 </div>

@@ -7,8 +7,8 @@ if (session_status() === PHP_SESSION_NONE) {
 // =========================================================================
 // 📥 PANGGIL FILE HEADER & DATABASE
 // =========================================================================
-require_once __DIR__ . '/../templates/header.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../templates/header.php';
+require_once __DIR__ . '/../templates/sidebar.php';
 
 // Mengambil username/NIM yang digunakan saat login
 $session_username = $_SESSION['username'] ?? '';
