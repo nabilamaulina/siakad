@@ -46,28 +46,35 @@ $nama_dosen_wali = "Belum Ditentukan";
 $status_krs = "Belum Mengisi";
 $jadwal_kuliah = [];
 
-try {
-    // 1. Ambil data mahasiswa dan dosen walinya
-    $stmt_mhs = $pdo->prepare("
-        SELECT m.id_mahasiswa, m.nama_mahasiswa, m.nim, d.nama_dosen 
-        FROM mahasiswa m 
-        LEFT JOIN dosen d ON m.id_dosen_wali = d.id_dosen 
-        WHERE m.id_user = ?
-    ");
-    $stmt_mhs->execute([$id_user_mhs]);
-    $data_mhs = $stmt_mhs->fetch(PDO::FETCH_ASSOC);
-    $id_mahasiswa = $data_mhs['id_mahasiswa'] ?? 0;
-
-    if ($data_mhs) {
-        $nama_mahasiswa = $data_mhs['nama_mahasiswa'];
-        if (!empty($data_mhs['nama_dosen'])) {
-            $nama_dosen_wali = $data_mhs['nama_dosen'];
+// 1. LANGKAH UTAMA: Ambil data mahasiswa dan dosen walinya dulu (Dipisah agar jika KRS eror, data ini tetap tampil)
+if ($id_user_mhs > 0 && isset($pdo)) {
+    try {
+        $stmt_mhs = $pdo->prepare("
+            SELECT m.id_mahasiswa, m.nama_mahasiswa, m.nim, d.nama_dosen 
+            FROM mahasiswa m 
+            LEFT JOIN dosen d ON m.id_dosen_wali = d.id_dosen 
+            WHERE m.id_user = ?
+        ");
+        $stmt_mhs->execute([$id_user_mhs]);
+        $data_mhs = $stmt_mhs->fetch(PDO::FETCH_ASSOC);
+        
+        if ($data_mhs) {
+            $id_mahasiswa = $data_mhs['id_mahasiswa'];
+            $nama_mahasiswa = $data_mhs['nama_mahasiswa'];
+            if (!empty($data_mhs['nama_dosen'])) {
+                $nama_dosen_wali = $data_mhs['nama_dosen'];
+            }
         }
+    } catch (Exception $e) {
+        // Jika gagal query ke database, gunakan fallback nama session
+        $id_mahasiswa = 0;
     }
+}
 
-    if ($id_mahasiswa > 0) {
-        // 2. Hitung total SKS yang diambil mahasiswa di semester aktif (dari tabel krs/krs_detail)
-        // Catatan: sesuaikan nama tabel & kolom Anda jika berbeda (misal: krs atau detail_krs)
+// 2. LANGKAH KEDUA: Ambil info KRS & Jadwal Kuliah jika ID Mahasiswa ditemukan
+if (!empty($id_mahasiswa) && $id_mahasiswa > 0) {
+    try {
+        // Hitung total SKS yang diambil mahasiswa
         $stmt_sks = $pdo->prepare("
             SELECT SUM(mk.sks) FROM krs k 
             JOIN jadwal j ON k.id_jadwal = j.id_jadwal
@@ -77,15 +84,15 @@ try {
         $stmt_sks->execute([$id_mahasiswa]);
         $total_sks = (int)$stmt_sks->fetchColumn();
 
-        // 3. Cek Status KRS
+        // Cek Status KRS
         $stmt_status = $pdo->prepare("SELECT status_validasi FROM krs WHERE id_mahasiswa = ? LIMIT 1");
         $stmt_status->execute([$id_mahasiswa]);
         $cek_status = $stmt_status->fetchColumn();
         if ($cek_status) {
-            $status_krs = $cek_status; // 'Pending' atau 'Disetujui'
+            $status_krs = $cek_status; 
         }
 
-        // 4. Ambil Jadwal Kuliah Mahasiswa
+        // Ambil Jadwal Kuliah Mahasiswa
         $query_jadwal = "
             SELECT j.*, mk.nama_mk, mk.kode_mk, k.nama_kelas AS kelas, j.ruang AS ruangan, d.nama_dosen
             FROM krs k_rs
@@ -99,16 +106,13 @@ try {
         $stmt_jadwal = $pdo->prepare($query_jadwal);
         $stmt_jadwal->execute([$id_mahasiswa]);
         $jadwal_kuliah = $stmt_jadwal->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch (Exception $e) {
+        // Jika KRS/Jadwal bermasalah, gunakan mock data agar tidak merusak tampilan dosen wali asli
+        $total_sks = 0;
+        $status_krs = "Belum Mengisi";
+        $jadwal_kuliah = [];
     }
-} catch (Exception $e) {
-    // Fallback Mock Data jika database bermasalah / struktur tabel krs berbeda
-    $total_sks = 20;
-    $nama_dosen_wali = "Dr. Budi Santoso, M.T.";
-    $status_krs = "Disetujui";
-    $jadwal_kuliah = [
-        ['nama_mk' => 'Pemrograman Web Berbasis PHP', 'kelas' => 'IF-A Pagi', 'hari' => 'Senin', 'jam_mulai' => '08:00', 'jam_selesai' => '10:30', 'ruangan' => 'Lab Komputer 2'],
-        ['nama_mk' => 'Kecerdasan Buatan (AI)', 'kelas' => 'IF-A Pagi', 'hari' => 'Rabu', 'jam_mulai' => '10:30', 'jam_selesai' => '13:00', 'ruangan' => 'Ruang Teori 301']
-    ];
 }
 ?>
 
@@ -191,7 +195,7 @@ try {
             <div class="card-body p-4 d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted text-uppercase fw-bold d-block mb-1" style="font-size: 11px;">Dosen Wali Anda</span>
-                    <h6 class="fw-bold mb-0 text-truncate text-dark" style="max-width: 180px;"><?= htmlspecialchars($nama_dosen_wali); ?></h6>
+                    <h6 class="fw-bold mb-0 text-truncate text-dark" style="max-width: 220px;" title="<?= htmlspecialchars($nama_dosen_wali); ?>"><?= htmlspecialchars($nama_dosen_wali); ?></h6>
                 </div>
                 <div class="rounded-3 p-3 text-info" style="background-color: rgba(13, 202, 240, 0.08);">
                     <i class="fa-solid fa-user-tie fs-3"></i>
@@ -208,7 +212,7 @@ try {
                     <h5 class="fw-bold mb-0">
                         <?php if($status_krs == 'Disetujui'): ?>
                             <span class="badge bg-success-subtle text-success p-2 px-3 rounded-pill" style="font-size: 13px;">Disetujui</span>
-                        <?php elseif($status_krs == 'Pending'): ?>
+                        <?php elseif($status_krs == 'Pending' || $status_krs == 'Menunggu Validasi'): ?>
                             <span class="badge bg-warning-subtle text-warning p-2 px-3 rounded-pill" style="font-size: 13px;">Menunggu Validasi</span>
                         <?php else: ?>
                             <span class="badge bg-danger-subtle text-danger p-2 px-3 rounded-pill" style="font-size: 13px;">Belum Kontrak</span>
