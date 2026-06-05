@@ -9,27 +9,27 @@ require_once __DIR__ . '/../../config/database.php';
 
 $current_page = basename($_SERVER['PHP_SELF']);
 
-//Ambil nama mahasiswa dari database
+// Ambil nama mahasiswa dari database
 $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
+$foto_mhs = 'default.png'; // Default awal jika tidak ada di DB
 
 try {
-   $stmt = $pdo->prepare("
-    SELECT nama_mahasiswa, foto
-    FROM mahasiswa
-    WHERE id_user = ?
-    LIMIT 1
-");
+    $stmt = $pdo->prepare("
+        SELECT nama_mahasiswa, foto
+        FROM mahasiswa
+        WHERE id_user = ?
+        LIMIT 1
+    ");
     
     $stmt->execute([$_SESSION['id_user']]);
     $mhs = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if ($mhs) {
-    $nama_mhs_aktif = $mhs['nama_mahasiswa'];
-
-    if (!empty($mhs['foto'])) {
-        $foto_mhs = $mhs['foto'];
+    if ($mhs) {
+        $nama_mhs_aktif = $mhs['nama_mahasiswa'];
+        if (!empty($mhs['foto'])) {
+            $foto_mhs = $mhs['foto'];
+        }
     }
-}
 
 } catch (Exception $e) {
     $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
@@ -54,7 +54,6 @@ $base_path = $is_inside_folder ? '../' : '';
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.3s;
     flex-shrink: 0;
-
     position: sticky;
     top: 0;
 }
@@ -151,23 +150,26 @@ $base_path = $is_inside_folder ? '../' : '';
             </h4>
         </div>
 
-<a href="<?= $base_path; ?>profil/edit_profil.php"
-    $foto_url = '/siakad/assets/uploads/foto_mahasiswa/';
-   class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
-<img src="<?= $base_path; ?>../assets/uploads/foto_mahasiswa/<?= htmlspecialchars($foto_mhs); ?>"
-     class="rounded-circle mb-2"
-     style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+        <a href="<?= $base_path; ?>profil/edit_profil.php" class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
+            <?php if ($foto_mhs === 'default.png'): ?>
+                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
+                     class="rounded-circle mb-2" 
+                     style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+            <?php else: ?>
+                <img src="<?= $base_path; ?>../assets/uploads/foto_mahasiswa/<?= htmlspecialchars($foto_mhs); ?>"
+                     class="rounded-circle mb-2"
+                     style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+            <?php endif; ?>
             
-<div class="user-info">
-    <h6 class="text-white fw-bold mb-1" style="font-size:14px;">
-        <?= htmlspecialchars($nama_mhs_aktif); ?>
-    </h6>
+            <div class="user-info">
+                <h6 class="text-white fw-bold mb-1" style="font-size:14px;">
+                    <?= htmlspecialchars($nama_mhs_aktif); ?>
+                </h6>
 
-    <span class="badge bg-info text-dark px-2 py-1"
-          style="font-size:11px;">
-        <?= htmlspecialchars($nim_mhs_aktif); ?>
-    </span>
-</div>
+                <span class="badge bg-info text-dark px-2 py-1" style="font-size:11px;">
+                    <?= htmlspecialchars($nim_mhs_aktif); ?>
+                </span>
+            </div>
         </a>
 
         <hr class="sidebar-divider my-2 mx-3" style="border-color: rgba(255,255,255,0.1);">
@@ -178,36 +180,43 @@ $base_path = $is_inside_folder ? '../' : '';
                 <i class="fa-solid fa-chart-pie me-3" style="width: 20px;"></i>Dashboard Utama
             </a>
 
-            <?php $is_akademik_active =
-(
-    $current_page == 'jadwal.php' ||
-    $current_page == 'absensi.php' ||
-    $current_page == 'krs.php'
-); ?>
+            <?php 
+            $is_akademik_active = (
+                $current_page == 'jadwal.php' ||
+                $current_page == 'absensi.php' ||
+                $current_page == 'riwayat_absensi.php' ||
+                $current_page == 'krs.php'
+            ); 
+            ?>
             <a class="list-group-item list-group-item-action justify-content-between <?= $is_akademik_active ? '' : 'collapsed'; ?>"
                data-bs-toggle="collapse" data-bs-target="#menuAkademikMhs" role="button" aria-expanded="<?= $is_akademik_active ? 'true' : 'false'; ?>">
                 <div class="d-flex align-items-center">
-                    <i class="fa-solid fa-layer-group me-3" style="width: 20px;"></i>Layanan Akademik
+                    <i class="fa-solid fa-layer-group me-3" style="width: 20px;"></i>Layanan Academic
                 </div>
                 <i class="fa-solid fa-chevron-down small chevron-arrow" style="font-size: 10px;"></i>
             </a>
             <div class="collapse <?= $is_akademik_active ? 'show' : ''; ?>" id="menuAkademikMhs" style="background: rgba(0,0,0,0.15); border-radius: 8px; margin: 2px 16px;">
                 <div class="nav flex-column pb-1 submenu-box">
-                    <a class="list-group-item list-group-item-action <?= ($current_page == 'krs.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/krs.php"><i class="fa-solid fa-file-signature me-2"></i>Pengisian KRS Online</a>
-                    <a class="list-group-item list-group-item-action <?= ($current_page == 'jadwal.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/jadwal.php"><i class="fa-regular fa-calendar me-2"></i>Jadwal Kuliah & Absen</a>
+                    <a class="list-group-item list-group-item-action <?= ($current_page == 'krs.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/krs.php">
+                        <i class="fa-solid fa-file-signature me-2"></i>Pengisian KRS Online
+                    </a>
+                    
                     <a class="list-group-item list-group-item-action <?= ($current_page == 'absensi.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/absensi.php">
-    <i class="fa-solid fa-user-check me-2"></i>Riwayat Absensi
-</a>
+                        <i class="fa-regular fa-calendar me-2"></i>Absensi Kuliah
+                    </a>
+                    
+                    <a class="list-group-item list-group-item-action <?= ($current_page == 'riwayat_absensi.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>akademik/riwayat_absensi.php">
+                        <i class="fa-solid fa-user-check me-2"></i>Riwayat Absensi
+                    </a>
                 </div>
             </div>
 
-           <?php
-$is_profil_active =
-(
-    $current_page == 'profile.php' ||
-    $current_page == 'edit_profil.php'
-);
-?>
+            <?php
+            $is_profil_active = (
+                $current_page == 'profile.php' ||
+                $current_page == 'edit_profil.php'
+            );
+            ?>
             <a class="list-group-item list-group-item-action justify-content-between <?= $is_profil_active ? '' : 'collapsed'; ?>"
                data-bs-toggle="collapse" data-bs-target="#menuProfilMhs" role="button" aria-expanded="<?= $is_profil_active ? 'true' : 'false'; ?>">
                 <div class="d-flex align-items-center">
@@ -217,11 +226,9 @@ $is_profil_active =
             </a>
             <div class="collapse <?= $is_profil_active ? 'show' : ''; ?>" id="menuProfilMhs" style="background: rgba(0,0,0,0.15); border-radius: 8px; margin: 2px 16px;">
                 <div class="nav flex-column pb-1 submenu-box">
-<a class="list-group-item list-group-item-action <?= ($current_page == 'edit_profil.php') ? 'active-submenu' : ''; ?>"
-   href="<?= $base_path; ?>profil/edit_profil.php">
-    <i class="fa-solid fa-user-pen me-2"></i>
-    Ubah Profil & Sandi
-</a>
+                    <a class="list-group-item list-group-item-action <?= ($current_page == 'edit_profil.php') ? 'active-submenu' : ''; ?>" href="<?= $base_path; ?>profil/edit_profil.php">
+                        <i class="fa-solid fa-user-pen me-2"></i>Ubah Profil & Sandi
+                    </a>
                 </div>
             </div>
 
@@ -235,9 +242,7 @@ $is_profil_active =
     </div>
 </div>
 
-<div id="page-content-wrapper"
-     class="d-flex flex-column flex-grow-1"
-     style="min-height:100vh;">
+<div id="page-content-wrapper" class="d-flex flex-column flex-grow-1" style="min-height:100vh;">
     
     <nav class="navbar navbar-expand navbar-light bg-white px-4 py-3 border-bottom shadow-sm" style="min-height: 65px;">
         <div class="container-fluid p-0 d-flex justify-content-between align-items-center">

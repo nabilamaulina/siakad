@@ -45,8 +45,9 @@ $total_sks = 0;
 $nama_dosen_wali = "Belum Ditentukan";
 $status_krs = "Belum Mengisi";
 $jadwal_kuliah = [];
+$id_mahasiswa = 0;
 
-// 1. LANGKAH UTAMA: Ambil data mahasiswa dan dosen walinya dulu (Dipisah agar jika KRS eror, data ini tetap tampil)
+// 1. LANGKAH UTAMA: Ambil data mahasiswa dan dosen walinya dulu berdasarkan id_user login
 if ($id_user_mhs > 0 && isset($pdo)) {
     try {
         $stmt_mhs = $pdo->prepare("
@@ -54,53 +55,71 @@ if ($id_user_mhs > 0 && isset($pdo)) {
             FROM mahasiswa m 
             LEFT JOIN dosen d ON m.id_dosen_wali = d.id_dosen 
             WHERE m.id_user = ?
+            LIMIT 1
         ");
         $stmt_mhs->execute([$id_user_mhs]);
         $data_mhs = $stmt_mhs->fetch(PDO::FETCH_ASSOC);
         
         if ($data_mhs) {
-            $id_mahasiswa = $data_mhs['id_mahasiswa'];
+            $id_mahasiswa = (int)$data_mhs['id_mahasiswa'];
             $nama_mahasiswa = $data_mhs['nama_mahasiswa'];
             if (!empty($data_mhs['nama_dosen'])) {
                 $nama_dosen_wali = $data_mhs['nama_dosen'];
             }
+            // Simpan ke session juga sebagai backup validasi halaman krs
+            $_SESSION['id_mahasiswa'] = $id_mahasiswa;
         }
     } catch (Exception $e) {
-        // Jika gagal query ke database, gunakan fallback nama session
         $id_mahasiswa = 0;
     }
 }
 
 // 2. LANGKAH KEDUA: Ambil info KRS & Jadwal Kuliah jika ID Mahasiswa ditemukan
-if (!empty($id_mahasiswa) && $id_mahasiswa > 0) {
+if ($id_mahasiswa > 0 && isset($pdo)) {
     try {
-        // Hitung total SKS yang diambil mahasiswa
+        // 🔥 HITUNG TOTAL SKS YANG SUDAH DI-ACC DOSEN WALI (STATUS_VALIDASI = 'Disetujui')
         $stmt_sks = $pdo->prepare("
             SELECT SUM(mk.sks) FROM krs k 
             JOIN jadwal j ON k.id_jadwal = j.id_jadwal
             JOIN mata_kuliah mk ON j.id_mk = mk.id_mk 
-            WHERE k.id_mahasiswa = ? AND k.status_validasi = 'Disetujui'
+            WHERE k.id_mahasiswa = ? AND (k.status_validasi = 'Disetujui' OR k.status_validasi = 'disetujui')
         ");
         $stmt_sks->execute([$id_mahasiswa]);
         $total_sks = (int)$stmt_sks->fetchColumn();
 
-        // Cek Status KRS
-        $stmt_status = $pdo->prepare("SELECT status_validasi FROM krs WHERE id_mahasiswa = ? LIMIT 1");
-        $stmt_status->execute([$id_mahasiswa]);
-        $cek_status = $stmt_status->fetchColumn();
-        if ($cek_status) {
-            $status_krs = $cek_status; 
+        // 🔥 CEK STATUS KONTRAK KRS SECARA REAL-TIME SMART DETECTION
+        // Hitung berapa mk yang pending dan berapa mk yang sudah di-acc
+        $stmt_count = $pdo->prepare("
+            SELECT 
+                COUNT(CASE WHEN LOWER(status_validasi) = 'pending' THEN 1 END) as jml_pending,
+                COUNT(CASE WHEN LOWER(status_validasi) = 'disetujui' THEN 1 END) as jml_acc
+            FROM krs WHERE id_mahasiswa = ?
+        ");
+        $stmt_count->execute([$id_mahasiswa]);
+        $counts = $stmt_count->fetch(PDO::FETCH_ASSOC);
+        
+        $jml_pending = (int)($counts['jml_pending'] ?? 0);
+        $jml_acc     = (int)($counts['jml_acc'] ?? 0);
+
+        if ($jml_acc > 0 && $jml_pending === 0) {
+            $status_krs = 'Disetujui';
+        } elseif ($jml_pending > 0) {
+            $status_krs = 'Pending';
+        } elseif ($jml_acc === 0 && $jml_pending === 0) {
+            $status_krs = 'Belum Kontrak';
+        } else {
+            $status_krs = 'Pending';
         }
 
-        // Ambil Jadwal Kuliah Mahasiswa
+        // 🔥 AMBIL JADWAL KULIAH MAHASISWA YANG HANYA SUDAH DI-ACC (STATUS_VALIDASI = 'Disetujui')
         $query_jadwal = "
-            SELECT j.*, mk.nama_mk, mk.kode_mk, k.nama_kelas AS kelas, j.ruang AS ruangan, d.nama_dosen
+            SELECT j.*, mk.nama_mk, mk.kode_mk, k.nama_kelas AS kelas, j.ruangan, d.nama_dosen
             FROM krs k_rs
             JOIN jadwal j ON k_rs.id_jadwal = j.id_jadwal
             JOIN mata_kuliah mk ON j.id_mk = mk.id_mk 
-            JOIN kelas k ON j.id_kelas = k.id_kelas
-            JOIN dosen d ON j.id_dosen = d.id_dosen
-            WHERE k_rs.id_mahasiswa = ? AND k_rs.status_validasi = 'Disetujui'
+            LEFT JOIN kelas k ON j.id_kelas = k.id_kelas
+            LEFT JOIN dosen d ON j.id_dosen = d.id_dosen
+            WHERE k_rs.id_mahasiswa = ? AND (k_rs.status_validasi = 'Disetujui' OR k_rs.status_validasi = 'disetujui')
             ORDER BY FIELD(j.hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'), j.jam_mulai ASC
         ";
         $stmt_jadwal = $pdo->prepare($query_jadwal);
@@ -108,9 +127,8 @@ if (!empty($id_mahasiswa) && $id_mahasiswa > 0) {
         $jadwal_kuliah = $stmt_jadwal->fetchAll(PDO::FETCH_ASSOC);
 
     } catch (Exception $e) {
-        // Jika KRS/Jadwal bermasalah, gunakan mock data agar tidak merusak tampilan dosen wali asli
         $total_sks = 0;
-        $status_krs = "Belum Mengisi";
+        $status_krs = "Belum Kontrak";
         $jadwal_kuliah = [];
     }
 }
@@ -180,7 +198,7 @@ if (!empty($id_mahasiswa) && $id_mahasiswa > 0) {
         <a href="akademik/krs.php" class="card card-custom card-clickable shadow-sm h-100 bg-white">
             <div class="card-body p-4 d-flex align-items-center justify-content-between">
                 <div>
-                    <span class="text-muted text-uppercase fw-bold d-block mb-1" style="font-size: 11px;">SKS Diambil</span>
+                    <span class="text-muted text-uppercase fw-bold d-block mb-1" style="font-size: 11px;">SKS Diambil (ACC)</span>
                     <h2 class="fw-bold mb-0" style="color: var(--siakad-primary);"><?= $total_sks; ?> <span style="font-size: 14px;" class="text-muted fw-normal">SKS</span></h2>
                 </div>
                 <div class="rounded-3 p-3" style="background-color: rgba(36, 83, 88, 0.08); color: var(--siakad-primary);">
@@ -211,11 +229,11 @@ if (!empty($id_mahasiswa) && $id_mahasiswa > 0) {
                     <span class="text-muted text-uppercase fw-bold d-block mb-1" style="font-size: 11px;">Status Kontrak KRS</span>
                     <h5 class="fw-bold mb-0">
                         <?php if($status_krs == 'Disetujui'): ?>
-                            <span class="badge bg-success-subtle text-success p-2 px-3 rounded-pill" style="font-size: 13px;">Disetujui</span>
-                        <?php elseif($status_krs == 'Pending' || $status_krs == 'Menunggu Validasi'): ?>
-                            <span class="badge bg-warning-subtle text-warning p-2 px-3 rounded-pill" style="font-size: 13px;">Menunggu Validasi</span>
+                            <span class="badge bg-success text-white p-2 px-3 rounded-pill" style="font-size: 13px;">Disetujui</span>
+                        <?php elseif($status_krs == 'Pending'): ?>
+                            <span class="badge bg-warning text-dark p-2 px-3 rounded-pill" style="font-size: 13px;">Menunggu Validasi</span>
                         <?php else: ?>
-                            <span class="badge bg-danger-subtle text-danger p-2 px-3 rounded-pill" style="font-size: 13px;">Belum Kontrak</span>
+                            <span class="badge bg-danger text-white p-2 px-3 rounded-pill" style="font-size: 13px;">Belum Kontrak</span>
                         <?php endif; ?>
                     </h5>
                 </div>
@@ -232,7 +250,7 @@ if (!empty($id_mahasiswa) && $id_mahasiswa > 0) {
         <div class="card card-custom shadow-sm border-0 h-100 bg-white">
             <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
                 <h5 class="mb-0 fw-bold text-dark" style="font-size: 16px;">
-                    <i class="fa-solid fa-calendar-week me-2 text-secondary"></i>Jadwal Kuliah Anda Hari Ini / Minggu Ini
+                    <i class="fa-solid fa-calendar-week me-2 text-secondary"></i>Jadwal Kuliah Anda Hari Ini / Minggu Ini (ACC)
                 </h5>
             </div>
             <div class="card-body p-0">
@@ -254,14 +272,17 @@ if (!empty($id_mahasiswa) && $id_mahasiswa > 0) {
                                             <?= htmlspecialchars($row['nama_mk']); ?><br>
                                             <span class="text-muted fw-normal small" style="font-size: 11px;">Dosen: <?= htmlspecialchars($row['nama_dosen'] ?? '-'); ?></span>
                                         </td>
-                                        <td><?= htmlspecialchars($row['kelas']); ?></td>
-                                        <td><?= htmlspecialchars($row['hari']); ?> (<?= htmlspecialchars($row['jam_mulai']); ?> - <?= htmlspecialchars($row['jam_selesai'] ?? ''); ?>)</td>
-                                        <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($row['ruangan']); ?></span></td>
+                                        <td><?= htmlspecialchars($row['kelas'] ?? 'Reguler'); ?></td>
+                                        <td><?= htmlspecialchars($row['hari']); ?> (<?= date('H:i', strtotime($row['jam_mulai'])); ?> - <?= date('H:i', strtotime($row['jam_selesai'] ?? '')); ?>)</td>
+                                        <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($row['ruangan'] ?? $row['ruang'] ?? '-'); ?></span></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="text-center py-4 text-muted">Belum ada jadwal kuliah yang disetujui.</td>
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        <i class="fa-solid fa-calendar-xmark d-block fs-3 mb-2 text-muted"></i>
+                                        Belum ada jadwal kuliah yang disetujui (ACC) oleh Dosen PA.
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
