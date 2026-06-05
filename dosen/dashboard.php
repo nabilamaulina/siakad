@@ -53,7 +53,7 @@ $thn_ini  = date('Y');
 $tanggal_lengkap = "$hari_ini, $tgl_ini $bln_ini $thn_ini";
 
 // Inisialisasi awal variabel dengan nilai default
-$nama_dosen = 'Dosen Pengajar'; // Default fallback jika data tidak ketemu
+$nama_dosen = 'Dosen Pengajar'; 
 $count_mk_dosen = 0;
 $count_mhs_bimbingan = 0;
 $count_kelas_aktif = 0;
@@ -61,14 +61,12 @@ $agenda_mengajar = [];
 
 // --- QUERY DATA AGREGAT REAL DARI DATABASE ---
 try {
-    // Ambil ID Dosen DAN NAMA DOSEN sekaligus berdasarkan id_user session
     $stmt_dosen = $pdo->prepare("SELECT id_dosen, nama_dosen FROM dosen WHERE id_user = ?");
     $stmt_dosen->execute([$id_user_dosen]);
     $data_dosen = $stmt_dosen->fetch(PDO::FETCH_ASSOC);
     
     $id_dosen = $data_dosen['id_dosen'] ?? 0;
     
-    // JIKA NAMA DOSEN ADA DI DATABASE, GUNAKAN. JIKA TIDAK, PAKAI SESSION SEBAGAI FALLBACK
     if (!empty($data_dosen['nama_dosen'])) {
         $nama_dosen = $data_dosen['nama_dosen'];
     } else {
@@ -99,26 +97,23 @@ try {
 
     $count_kelas_aktif = count($agenda_mengajar);
 
-    // Fallback Dummy Data jika database kosong agar UI tidak pincang
     if ($count_mk_dosen === 0 && $count_mhs_bimbingan === 0 && $count_kelas_aktif === 0) {
-        $count_mk_dosen = 3;
-        $count_mhs_bimbingan = 24;
-        $count_kelas_aktif = 3;
+        $count_mk_dosen = 4;
+        $count_mhs_bimbingan = 2;
+        $count_kelas_aktif = 5;
         $agenda_mengajar = [
-            ['id_jadwal' => 1, 'nama_mk' => 'Pemrograman Web Berbasis PHP', 'kelas' => 'IF-A Pagi', 'hari' => 'Senin', 'jam_mulai' => '08:00', 'jam_selesai' => '10:30', 'ruangan' => 'Lab Komputer 2', 'kode_mk' => 'MK-01'],
-            ['id_jadwal' => 2, 'nama_mk' => 'Kecerdasan Buatan (Artificial Intelligence)', 'kelas' => 'IF-B Malam', 'hari' => 'Rabu', 'jam_mulai' => '19:00', 'jam_selesai' => '21:30', 'ruangan' => 'Ruang Teori 301', 'kode_mk' => 'MK-02'],
-            ['id_jadwal' => 3, 'nama_mk' => 'Interaksi Manusia & Komputer', 'kelas' => 'IF-C Siang', 'hari' => 'Kamis', 'jam_mulai' => '13:30', 'jam_selesai' => '15:00', 'ruangan' => 'Lab Komputer 1', 'kode_mk' => 'MK-03']
+            ['id_jadwal' => 1, 'nama_mk' => 'Pendidikan Agama', 'kelas' => 'A', 'hari' => 'Senin', 'jam_mulai' => '07:30', 'jam_selesai' => '10:00', 'ruangan' => 'R102', 'kode_mk' => 'UXN1001'],
+            ['id_jadwal' => 2, 'nama_mk' => 'Pemrograman Berorientasi Objek', 'kelas' => 'A', 'hari' => 'Senin', 'jam_mulai' => '10:10', 'jam_selesai' => '12:40', 'ruangan' => 'Lab SI 1', 'kode_mk' => 'MS11203']
         ];
     }
 } catch (Exception $e) {
-    $count_mk_dosen = 3;
-    $count_mhs_bimbingan = 24;
-    $count_kelas_aktif = 3;
+    $count_mk_dosen = 4;
+    $count_mhs_bimbingan = 2;
+    $count_kelas_aktif = 5;
 
     $agenda_mengajar = [
-        ['id_jadwal' => 1, 'nama_mk' => 'Pemrograman Web Berbasis PHP', 'kelas' => 'IF-A Pagi', 'hari' => 'Senin', 'jam_mulai' => '08:00', 'jam_selesai' => '10:30', 'ruangan' => 'Lab Komputer 2', 'kode_mk' => 'MK-01'],
-        ['id_jadwal' => 2, 'nama_mk' => 'Kecerdasan Buatan (Artificial Intelligence)', 'kelas' => 'IF-B Malam', 'hari' => 'Rabu', 'jam_mulai' => '19:00', 'jam_selesai' => '21:30', 'ruangan' => 'Ruang Teori 301', 'kode_mk' => 'MK-02'],
-        ['id_jadwal' => 3, 'nama_mk' => 'Interaksi Manusia & Komputer', 'kelas' => 'IF-C Siang', 'hari' => 'Kamis', 'jam_mulai' => '13:30', 'jam_selesai' => '15:00', 'ruangan' => 'Lab Komputer 1', 'kode_mk' => 'MK-03']
+        ['id_jadwal' => 1, 'nama_mk' => 'Pendidikan Agama', 'kelas' => 'A', 'hari' => 'Senin', 'jam_mulai' => '07:30', 'jam_selesai' => '10:00', 'ruangan' => 'R102', 'kode_mk' => 'UXN1001'],
+        ['id_jadwal' => 2, 'nama_mk' => 'Pemrograman Berorientasi Objek', 'kelas' => 'A', 'hari' => 'Senin', 'jam_mulai' => '10:10', 'jam_selesai' => '12:40', 'ruangan' => 'Lab SI 1', 'kode_mk' => 'MS11203']
     ];
 }
 ?>
@@ -195,7 +190,7 @@ try {
 
     <div class="row g-3 mb-4">
         <div class="col-12 col-sm-6 col-xl-4">
-            <a href="/siakad/dosen/akademik/mata_kuliah.php" class="card card-custom card-clickable shadow-sm h-100 bg-white">
+            <a href="akademik_mengajar/mata_kuliah.php" class="card card-custom card-clickable shadow-sm h-100 bg-white">
                 <div class="card-body p-4 d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-muted text-uppercase fw-bold d-block mb-1" style="font-size: 11px;">Mata Kuliah Diampu</span>
@@ -210,7 +205,7 @@ try {
         </div>
 
         <div class="col-12 col-sm-6 col-xl-4">
-            <a href="/siakad/dosen/mahasiswa/bimbingan.php" class="card card-custom card-clickable shadow-sm h-100 bg-white">
+            <a href="perwalian/bimbingan.php" class="card card-custom card-clickable shadow-sm h-100 bg-white">
                 <div class="card-body p-4 d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-muted text-uppercase fw-bold d-block mb-1" style="font-size: 11px;">Anak Bimbingan Wali</span>
@@ -225,7 +220,7 @@ try {
         </div>
 
         <div class="col-12 col-sm-6 col-xl-4">
-            <a href="/siakad/dosen/jadwal/mengajar.php" class="card card-custom card-clickable shadow-sm h-100 bg-white">
+            <a href="akademik_mengajar/jadwal.php" class="card card-custom card-clickable shadow-sm h-100 bg-white">
                 <div class="card-body p-4 d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-muted text-uppercase fw-bold d-block mb-1" style="font-size: 11px;">Jadwal Kelas Aktif</span>
@@ -247,7 +242,7 @@ try {
                     <h5 class="mb-0 fw-bold text-dark" style="font-size: 16px; color: var(--siakad-primary) !important;">
                         <i class="fa-solid fa-list-check me-2 text-secondary"></i>Agenda Jadwal Mengajar Anda
                     </h5>
-                    <a href="/siakad/dosen/jadwal/mengajar.php" class="btn btn-sm btn-light border rounded-3 px-3 fw-semibold text-secondary" style="font-size: 12px;">
+                    <a href="akademik_mengajar/jadwal.php" class="btn btn-sm btn-light border rounded-3 px-3 fw-semibold text-secondary" style="font-size: 12px;">
                         <i class="fa-solid fa-up-right-from-square me-1"></i>Buka Kalender Penuh
                     </a>
                 </div>
@@ -282,8 +277,8 @@ try {
                                                 </span>
                                             </td>
                                             <td class="pe-4 text-end">
-                                                <a href="/siakad/dosen/akademik/presensi.php?id_jadwal=<?= $row['id_jadwal'] ?? ''; ?>" class="btn btn-sm btn-primary rounded-3 px-3 shadow-sm" style="font-size: 12px; font-weight: 600; background-color: var(--siakad-primary); border-color: var(--siakad-primary);">
-                                                    <i class="fa-solid fa-clipboard-user me-1"></i> Isi Presensi
+                                                <a href="akademik_mengajar/nilai.php" class="btn btn-sm btn-primary rounded-3 px-3 shadow-sm" style="font-size: 12px; font-weight: 600; background-color: var(--siakad-primary); border-color: var(--siakad-primary);">
+                                                    <i class="fa-solid fa-clipboard-user me-1"></i> Kelola Nilai
                                                 </a>
                                             </td>
                                         </tr>
@@ -312,19 +307,19 @@ try {
                 </div>
                 <div class="card-body pt-3">
                     <div class="d-flex flex-column gap-2">
-                        <a href="/siakad/dosen/nilai/input_nilai.php" class="btn quick-link-btn text-start p-3 rounded-3 fw-semibold text-dark" style="font-size: 13px; text-decoration: none;">
+                        <a href="akademik_mengajar/nilai.php" class="btn quick-link-btn text-start p-3 rounded-3 fw-semibold text-dark" style="font-size: 13px; text-decoration: none;">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div><i class="fa-solid fa-square-poll-horizontal me-2 text-success fs-5"></i> Input & Koreksi Nilai UAS</div>
                                 <i class="fa-solid fa-chevron-right text-muted small"></i>
                             </div>
                         </a>
-                        <a href="/siakad/dosen/mahasiswa/khs_bimbingan.php" class="btn quick-link-btn text-start p-3 rounded-3 fw-semibold text-dark" style="font-size: 13px; text-decoration: none;">
+                        <a href="perwalian/bimbingan.php" class="btn quick-link-btn text-start p-3 rounded-3 fw-semibold text-dark" style="font-size: 13px; text-decoration: none;">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div><i class="fa-solid fa-file-shield me-2 text-info fs-5"></i> Validasi KRS & KHS Wali</div>
                                 <i class="fa-solid fa-chevron-right text-muted small"></i>
                             </div>
                         </a>
-                        <a href="/siakad/dosen/sistem/profile.php" class="btn quick-link-btn text-start p-3 rounded-3 fw-semibold text-dark" style="font-size: 13px; text-decoration: none;">
+                        <a href="sistem/profile.php" class="btn quick-link-btn text-start p-3 rounded-3 fw-semibold text-dark" style="font-size: 13px; text-decoration: none;">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div><i class="fa-solid fa-user-gear me-2 text-secondary fs-5"></i> Konfigurasi Akun & Sandi</div>
                                 <i class="fa-solid fa-chevron-right text-muted small"></i>
@@ -367,5 +362,5 @@ try {
 </div>
 
 <?php
-require_once __DIR__ . '/../templates/footer.php';
+require_once __DIR__ . '/templates/footer.php';
 ?>
