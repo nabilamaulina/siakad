@@ -20,38 +20,54 @@ $msg_text = '';
 // =========================================================================
 // 🔍 AMBIL DATA PROFIL BERDASARKAN USERNAME/NIM LOGIN
 // =========================================================================
-$id_mahasiswa_asli = 0;
+$id_mahasiswa_asli = isset($_SESSION['id_mahasiswa']) ? (int)$_SESSION['id_mahasiswa'] : 0;
 $semester_mahasiswa = '2'; // Default jika data tidak ditemukan
 
-if (!empty($session_username)) {
-    try {
-        // Cari data berdasarkan nim yang sama dengan username login
+try {
+    $profile = null;
+    
+    // Cari data berdasarkan id_user terlebih dahulu (Lebih Akurat & Aman)
+    if ($id_user_login > 0) {
+        $stmt_profile = $pdo->prepare("SELECT id_mahasiswa, nama_mahasiswa, semester_saat_ini FROM mahasiswa WHERE id_user = ? LIMIT 1");
+        $stmt_profile->execute([$id_user_login]);
+        $profile = $stmt_profile->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Backup: Jika tidak ketemu berdasarkan id_user, cari berdasarkan nim/username
+    if (!$profile && !empty($session_username)) {
         $stmt_profile = $pdo->prepare("SELECT id_mahasiswa, nama_mahasiswa, semester_saat_ini FROM mahasiswa WHERE nim = ? LIMIT 1");
         $stmt_profile->execute([$session_username]);
         $profile = $stmt_profile->fetch(PDO::FETCH_ASSOC);
-
-        // Jika tidak ketemu berdasarkan NIM, cari berdasarkan id_user
-        if (!$profile && $id_user_login > 0) {
-            $stmt_profile = $pdo->prepare("SELECT id_mahasiswa, nama_mahasiswa, semester_saat_ini FROM mahasiswa WHERE id_user = ? LIMIT 1");
-            $stmt_profile->execute([$id_user_login]);
-            $profile = $stmt_profile->fetch(PDO::FETCH_ASSOC);
-        }
-
-        if ($profile) {
-            $id_mahasiswa_asli = $profile['id_mahasiswa'];
-
-            // 1. Sinkronisasi nama di header agar tetap nama asli mahasiswa
-            if (!empty($profile['nama_mahasiswa'])) {
-                $_SESSION['nama'] = $profile['nama_mahasiswa'];
-            }
-            // 2. Ambil semester aktif dari kolom 'semester_saat_ini'
-            if (!empty($profile['semester_saat_ini'])) {
-                $semester_mahasiswa = $profile['semester_saat_ini'];
-            }
-        }
-    } catch (Exception $e) {
-        // Abaikan jika error query agar tidak merusak template
     }
+
+    if ($profile) {
+        $id_mahasiswa_asli = (int)$profile['id_mahasiswa'];
+        $_SESSION['id_mahasiswa'] = $id_mahasiswa_asli; // Sinkronisasi ke session agar awet
+
+        // 1. Sinkronisasi nama di header agar tetap nama asli mahasiswa
+        if (!empty($profile['nama_mahasiswa'])) {
+            $_SESSION['nama'] = $profile['nama_mahasiswa'];
+        }
+        // 2. Ambil semester aktif dari kolom 'semester_saat_ini'
+        if (!empty($profile['semester_saat_ini'])) {
+            $semester_mahasiswa = $profile['semester_saat_ini'];
+        }
+    }
+} catch (Exception $e) {
+    // Abaikan jika error query agar tidak merusak template
+}
+
+// Fallback Terakhir: Jika database valid tapi session/lokal masih terbaca 0
+if ($id_mahasiswa_asli == 0 && $id_user_login > 0) {
+    try {
+        $stmt_fb = $pdo->prepare("SELECT id_mahasiswa FROM mahasiswa WHERE id_user = ? LIMIT 1");
+        $stmt_fb->execute([$id_user_login]);
+        $res_fb = $stmt_fb->fetch(PDO::FETCH_ASSOC);
+        if ($res_fb) {
+            $id_mahasiswa_asli = (int)$res_fb['id_mahasiswa'];
+            $_SESSION['id_mahasiswa'] = $id_mahasiswa_asli;
+        }
+    } catch (Exception $e) {}
 }
 
 // =========================================================================
@@ -87,14 +103,13 @@ try {
 $sem_filter = isset($_GET['semester']) ? (int)$_GET['semester'] : (int)$semester_mahasiswa;
 
 // 🔒 VALIDASI KESESUAIAN TIPE SEMESTER (Ganjil/Genap)
-// Cek apakah pilihan mahasiswa ganjil/genap-nya klop dengan semester aktif kampus
-$is_pilihan_ganjil = ($sem_filter % 2 !== 0); // true jika pilih semester 1,3,5,7
+$is_pilihan_ganjil = ($sem_filter % 2 !== 0); 
 
 $tampilkan_data = false;
 if ($jenis_semester_aktif === 'Ganjil' && $is_pilihan_ganjil) {
-    $tampilkan_data = true; // Musim ganjil, mahasiswa pilih ganjil -> OK
+    $tampilkan_data = true; 
 } elseif ($jenis_semester_aktif === 'Genap' && !$is_pilihan_ganjil) {
-    $tampilkan_data = true; // Musim genap, mahasiswa pilih genap -> OK
+    $tampilkan_data = true; 
 }
 
 // =========================================================================
@@ -102,6 +117,16 @@ if ($jenis_semester_aktif === 'Ganjil' && $is_pilihan_ganjil) {
 // =========================================================================
 if (isset($_POST['action_ambil_mk'])) {
     $id_jadwal = (int)($_POST['id_jadwal'] ?? 0);
+
+    // Re-verifikasi paksa sebelum input jika variabel lokal bernilai 0
+    if ($id_mahasiswa_asli == 0 && $id_user_login > 0) {
+        $stmt_recheck = $pdo->prepare("SELECT id_mahasiswa FROM mahasiswa WHERE id_user = ? LIMIT 1");
+        $stmt_recheck->execute([$id_user_login]);
+        $res_recheck = $stmt_recheck->fetch(PDO::FETCH_ASSOC);
+        if ($res_recheck) {
+            $id_mahasiswa_asli = (int)$res_recheck['id_mahasiswa'];
+        }
+    }
 
     if ($id_mahasiswa_asli == 0 || $id_user_login == 0) {
         $msg_status = 'danger';
@@ -175,7 +200,6 @@ if (isset($_POST['action_batal_mk'])) {
 $available_mk = [];
 $taken_krs = [];
 try {
-    // Hanya lakukan query ke database JIKA pilihan semester klop dengan tahun pembelajaran berjalan
     if ($tampilkan_data === true) {
         $stmt_av = $pdo->prepare("
             SELECT
@@ -200,7 +224,6 @@ try {
         $available_mk = $stmt_av->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Ambil data KRS yang sudah diambil oleh mahasiswa (ini tetap muncul)
     if ($id_mahasiswa_asli > 0) {
         $stmt_tk = $pdo->prepare("
             SELECT
