@@ -30,6 +30,7 @@ if ($mhs) {
         $foto_mhs = $mhs['foto'];
     }
 }
+
 } catch (Exception $e) {
     $nama_mhs_aktif = $_SESSION['username'] ?? 'Mahasiswa';
     $foto_mhs = 'default.png';
@@ -151,10 +152,11 @@ $base_path = $is_inside_folder ? '../' : '';
         </div>
 
 <a href="<?= $base_path; ?>profil/edit_profil.php"
+    $foto_url = '/siakad/assets/uploads/foto_mahasiswa/';
    class="user-profile-sidebar text-center py-3 mb-3 d-block text-decoration-none">
-           <img src="../../assets/uploads/foto_mahasiswa/<?= htmlspecialchars($foto_mhs); ?>"
-                 class="rounded-circle mb-2" 
-                 style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+<img src="<?= $base_path; ?>../assets/uploads/foto_mahasiswa/<?= htmlspecialchars($foto_mhs); ?>"
+     class="rounded-circle mb-2"
+     style="width: 65px; height: 65px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
             
 <div class="user-info">
     <h6 class="text-white fw-bold mb-1" style="font-size:14px;">
