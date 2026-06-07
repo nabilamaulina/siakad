@@ -217,12 +217,9 @@ $is_kinerja_active =
         </div>
 
         <div class="sidebar-footer">
-           <a href="<?= $base_path; ?>auth/logout.php"
-                class="btn btn-light text-danger w-100 rounded-pill py-2 small fw-bold border-0 d-flex align-items-center justify-content-center gap-2"
-                style="font-size:12px;background:#fef2f2;">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                Keluar Sistem
-            </a>
+           <a href="<?= $is_inside_folder ? '../../auth/logout.php' : '../auth/logout.php'; ?>" class="btn btn-light text-danger w-100 rounded-pill py-2 small fw-bold border-0 d-flex align-items-center justify-content-center gap-2" style="font-size: 12px; background: #fef2f2;">
+            <i class="fa-solid fa-right-from-bracket"></i> Keluar Sistem
+        </a>
         </div>
     </div>
 
