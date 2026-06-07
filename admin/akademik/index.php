@@ -4,7 +4,7 @@ require_once '../../templates/header.php';
 require_once '../../templates/sidebar.php';
 require_once '../../config/database.php';
 
-// Ambil Data Master untuk Dropdown Form
+// Ambil Data Master untuk Dropdown Form (Kembali menggunakan mata_kuliah)
 $all_mk = $pdo->query("SELECT * FROM mata_kuliah ORDER BY semester ASC, nama_mk ASC")->fetchAll();
 $all_kls = $pdo->query("SELECT * FROM kelas ORDER BY nama_kelas ASC")->fetchAll();
 $all_dsn = $pdo->query("SELECT id_dosen, nama_dosen FROM dosen ORDER BY nama_dosen ASC")->fetchAll();
@@ -12,7 +12,7 @@ $all_dsn = $pdo->query("SELECT id_dosen, nama_dosen FROM dosen ORDER BY nama_dos
 // SOLUSI TOTAL ERROR BARIS 13: Menggunakan SELECT * agar terhindar dari hardcode nama kolom yang salah
 $all_sem = $pdo->query("SELECT * FROM semester ORDER BY id_semester DESC")->fetchAll();
 
-// Ambil Relasi Jadwal Sesuai Skema Database (Menggunakan k.ruang dari tabel kelas)
+// Ambil Relasi Jadwal Sesuai Skema Database (JOIN dikembalikan ke mata_kuliah)
 $jadwal_stmt = $pdo->query("SELECT j.id_jadwal, j.hari, j.jam_mulai, j.jam_selesai, 
                                    mk.kode_mk, mk.nama_mk, mk.sks, mk.semester,
                                    d.nama_dosen, k.nama_kelas, k.ruang 
@@ -239,7 +239,6 @@ $data_jadwal = $jadwal_stmt->fetchAll();
                         <label class="form-label small fw-bold text-secondary">Semester Aktif</label>
                         <select name="id_semester" class="form-select rounded-3 small text-dark" required>
                             <?php foreach ($all_sem as $s): 
-                                // Trik array_values untuk mengambil teks kolom kedua apa pun namanya tanpa memicu error
                                 $kolom_data = array_values($s);
                                 $nama_tampilan_semester = $kolom_data[1] ?? 'Semester Terdaftar';
                             ?>

@@ -8,18 +8,39 @@ middleware(['admin']);
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
-// 1. TAMBAH MATA KULIAH BARU (FIX BUG #J)
+// 1. TAMBAH MATA KULIAH BARU (PERBAIKAN: PENANGANAN DUPLIKASI KODE MK)
 if ($action === 'insert_mk' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $kode_mk  = sanitize($_POST['kode_mk']);
     $nama_mk  = sanitize($_POST['nama_mk']);
     $sks      = (int)$_POST['sks'];
-    $jam      = (int)($_POST['jam'] ?? $sks); // Ambil dari form, jika tidak ada pakai fallback nilai SKS
     $semester = (int)$_POST['semester'];
 
-    $stmt = $pdo->prepare("INSERT INTO mata_kuliah (kode_mk, nama_mk, sks, jam, semester) VALUES (?, ?, ?, ?, ?)");
-    $stmt->execute([$kode_mk, $nama_mk, $sks, $jam, $semester]);
+    try {
+        // Ambil daftar nama kolom asli dari tabel mata_kuliah secara akurat
+        $columns = $pdo->query("DESCRIBE mata_kuliah")->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Cek apakah kolom bernama 'jam' ada di dalam array daftar kolom tersebut
+        if (in_array('jam', $columns)) {
+            $stmt = $pdo->prepare("INSERT INTO mata_kuliah (kode_mk, nama_mk, sks, jam, semester) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$kode_mk, $nama_mk, $sks, $sks, $semester]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO mata_kuliah (kode_mk, nama_mk, sks, semester) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$kode_mk, $nama_mk, $sks, $semester]);
+        }
 
-    log_activity($_SESSION['id_user'], "Menambah data mata kuliah baru: $nama_mk ($kode_mk)");
+        log_activity($_SESSION['id_user'], "Menambah data mata kuliah baru: $nama_mk ($kode_mk)");
+    } catch (PDOException $e) {
+        // Jika error disebabkan karena kode mata kuliah kembar / duplikat
+        if ($e->errorInfo[1] == 1062) {
+            // Anda bisa mengarahkan kembali sambil memberi pesan (opsional) atau langsung abaikan agar tidak fatal error
+            header("Location: index.php?status=duplicate#panel-mk");
+            exit();
+        } else {
+            // Jika ada error database lainnya, tetap lemparkan errornya
+            throw $e;
+        }
+    }
+
     header("Location: index.php#panel-mk");
     exit();
 }
@@ -116,9 +137,7 @@ if ($action === 'simpan_absensi' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $status_absen = $_POST['status_absen'] ?? []; 
     $tanggal_sekarang = date('Y-m-d');
 
-    // Mengubah perulangan dari yang tadinya $id_krs menjadi $id_mahasiswa sesuai panduan Bug #D
     foreach ($status_absen as $id_mahasiswa => $status) {
-        // Pengecekan presensi berdasarkan id_mahasiswa, id_jadwal, dan pertemuan_ke
         $check = $pdo->prepare("SELECT id_presensi FROM presensi 
                                WHERE id_mahasiswa = ? AND id_jadwal = ? AND pertemuan_ke = ?");
         $check->execute([$id_mahasiswa, $id_jadwal, $pertemuan]);

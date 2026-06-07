@@ -67,6 +67,7 @@ $count_dsn_perempuan = $pdo->query("SELECT COUNT(*) FROM dosen WHERE jenis_kelam
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
+        cursor: pointer; /* Memberikan efek kursor tangan saat diarahkan ke kartu */
     }
     .card-stat:hover {
         transform: translateY(-5px);
@@ -143,52 +144,63 @@ $count_dsn_perempuan = $pdo->query("SELECT COUNT(*) FROM dosen WHERE jenis_kelam
 
     <div class="row g-4 mb-4">
         <div class="col-xl-3 col-md-6">
-            <div class="card card-stat stat-mhs p-4 h-100 shadow-sm">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-stat-title mb-2">Total Mahasiswa</div>
-                        <div class="text-stat-value mb-1"><?= number_format($count_mhs); ?></div>
-                        <span class="text-muted" style="font-size: 11px;"><i class="fa-solid fa-graduation-cap me-1"></i>Mahasiswa Terdaftar</span>
+            <a href="/siakad/admin/mahasiswa/index.php" class="text-decoration-none">
+                <div class="card card-stat stat-mhs p-4 h-100 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-stat-title mb-2">Total Mahasiswa</div>
+                            <div class="text-stat-value mb-1"><?= number_format($count_mhs); ?></div>
+                            <span class="text-muted" style="font-size: 11px;"><i class="fa-solid fa-graduation-cap me-1"></i>Mahasiswa Terdaftar</span>
+                        </div>
+                        <div class="icon-shape"><i class="fa-solid fa-user-graduate"></i></div>
                     </div>
-                    <div class="icon-shape"><i class="fa-solid fa-user-graduate"></i></div>
                 </div>
-            </div>
+            </a>
         </div>
+        
         <div class="col-xl-3 col-md-6">
-            <div class="card card-stat stat-dosen p-4 h-100 shadow-sm">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-stat-title mb-2) ">Dosen Aktif</div>
-                        <div class="text-stat-value mb-1"><?= number_format($count_dsn); ?></div>
-                        <span class="text-muted" style="font-size: 11px;"><i class="fa-solid fa-id-card-clip me-1"></i>Tenaga Pengajar</span>
+            <a href="/siakad/admin/dosen/index.php" class="text-decoration-none">
+                <div class="card card-stat stat-dosen p-4 h-100 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-stat-title mb-2">Dosen Aktif</div>
+                            <div class="text-stat-value mb-1"><?= number_format($count_dsn); ?></div>
+                            <span class="text-muted" style="font-size: 11px;"><i class="fa-solid fa-id-card-clip me-1"></i>Tenaga Pengajar</span>
+                        </div>
+                        <div class="icon-shape"><i class="fa-solid fa-chalkboard-user"></i></div>
                     </div>
-                    <div class="icon-shape"><i class="fa-solid fa-chalkboard-user"></i></div>
                 </div>
-            </div>
+            </a>
         </div>
+        
         <div class="col-xl-3 col-md-6">
-            <div class="card card-stat stat-matkul p-4 h-100 shadow-sm">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-stat-title mb-2">Mata Kuliah</div>
-                        <div class="text-stat-value mb-1"><?= number_format($count_mk); ?></div>
-                        <span class="text-muted" style="font-size: 11px;"><i class="fa-solid fa-layer-group me-1"></i>Kurikulum Aktif</span>
+            <a href="/siakad/admin/akademik/index.php#panel-mk" class="text-decoration-none">
+                <div class="card card-stat stat-matkul p-4 h-100 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-stat-title mb-2">Mata Kuliah</div>
+                            <div class="text-stat-value mb-1"><?= number_format($count_mk); ?></div>
+                            <span class="text-muted" style="font-size: 11px;"><i class="fa-solid fa-layer-group me-1"></i>Kurikulum Aktif</span>
+                        </div>
+                        <div class="icon-shape"><i class="fa-solid fa-book-bookmark"></i></div>
                     </div>
-                    <div class="icon-shape"><i class="fa-solid fa-book-bookmark"></i></div>
                 </div>
-            </div>
+            </a>
         </div>
+        
         <div class="col-xl-3 col-md-6">
-            <div class="card card-stat stat-online p-4 h-100 shadow-sm">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-stat-title mb-2">Sesi Online</div>
-                        <div class="text-stat-value mb-1"><?= number_format($count_logs); ?></div>
-                        <span class="text-success" style="font-size: 11px;"><i class="fa-solid fa-circle text-success me-1 animate-pulse"></i>Real-time Monitoring</span>
+            <a href="/siakad/admin/sistem/log_aktivitas.php" class="text-decoration-none">
+                <div class="card card-stat stat-online p-4 h-100 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-stat-title mb-2">Sesi Online</div>
+                            <div class="text-stat-value mb-1"><?= number_format($count_logs); ?></div>
+                            <span class="text-success" style="font-size: 11px;"><i class="fa-solid fa-circle text-success me-1 animate-pulse"></i>Real-time Monitoring</span>
+                        </div>
+                        <div class="icon-shape"><i class="fa-solid fa-bolt"></i></div>
                     </div>
-                    <div class="icon-shape"><i class="fa-solid fa-bolt"></i></div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
