@@ -319,7 +319,7 @@ try {
                                 <i class="fa-solid fa-chevron-right text-muted small"></i>
                             </div>
                         </a>
-                        <a href="sistem/profile.php" class="btn quick-link-btn text-start p-3 rounded-3 fw-semibold text-dark" style="font-size: 13px; text-decoration: none;">
+                        <a href="kinerja_dosen/profile.php" class="btn quick-link-btn text-start p-3 rounded-3 fw-semibold text-dark" style="font-size: 13px; text-decoration: none;">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div><i class="fa-solid fa-user-gear me-2 text-secondary fs-5"></i> Konfigurasi Akun & Sandi</div>
                                 <i class="fa-solid fa-chevron-right text-muted small"></i>

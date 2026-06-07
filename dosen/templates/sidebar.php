@@ -6,26 +6,44 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $current_page = basename($_SERVER['PHP_SELF']);
 
-// Deteksi lokasi folder saat ini agar link navigasi tidak pecah/salah jalur
 $request_uri = $_SERVER['REQUEST_URI'];
-$is_inside_folder = (strpos($request_uri, '/akademik_mengajar/') !== false || 
-                     strpos($request_uri, '/perwalian/') !== false);
 
-// Path acuan mundur ke folder utama jika sedang berada di dalam sub-folder
+// =========================
+// DETEKSI FOLDER AKTIF
+// =========================
+$is_inside_folder = (
+    strpos($request_uri, '/akademik_mengajar/') !== false ||
+    strpos($request_uri, '/perwalian/') !== false ||
+    strpos($request_uri, '/kinerja_dosen/') !== false
+);
+
+// Path kembali ke folder dosen/
 $base_path = $is_inside_folder ? '../' : '';
 
-// Hubungkan koneksi database PDO jika belum terdefinisi
+// =========================
+// DATABASE
+// =========================
 if (!isset($pdo)) {
-    $config_path = $is_inside_folder ? __DIR__ . '/../../config/database.php' : __DIR__ . '/../config/database.php';
+    $config_path = __DIR__ . '/../../config/database.php';
+
     if (file_exists($config_path)) {
         require_once $config_path;
     }
 }
 
-// AMBIL DATA DOSEN DENGAN DRIVER PDO AGAR MENU TIDAK BERHENTI MERENDER (FATAL ERROR)
+// =========================
+// DATA DOSEN
+// =========================
+$user_dosen = null;
+
 if (isset($_SESSION['id_user']) && isset($pdo)) {
     try {
-        $stmt_side = $pdo->prepare("SELECT nama_dosen FROM dosen WHERE id_user = ?");
+        $stmt_side = $pdo->prepare("
+            SELECT nama_dosen, foto
+            FROM dosen
+            WHERE id_user = ?
+            LIMIT 1
+        ");
         $stmt_side->execute([$_SESSION['id_user']]);
         $user_dosen = $stmt_side->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
@@ -33,24 +51,41 @@ if (isset($_SESSION['id_user']) && isset($pdo)) {
     }
 }
 
-// Ambil info nama dosen dan data session aktif
-$nama_dosen_aktif = $user_dosen['nama_dosen'] ?? $_SESSION['nama_user'] ?? 'Dosen Pengajar';
+$nama_dosen_aktif = $user_dosen['nama_dosen']
+    ?? $_SESSION['nama_user']
+    ?? 'Dosen Pengajar';
+
+$foto_dosen = $user_dosen['foto']
+    ?? 'default.png';
+
+// =========================
+// STATUS MENU AKTIF
+// =========================
+$is_akademik_active =
+    strpos($request_uri, '/akademik_mengajar/') !== false;
+
+$is_perwalian_active =
+    strpos($request_uri, '/perwalian/') !== false;
+
+$is_kinerja_active =
+    strpos($request_uri, '/kinerja_dosen/') !== false;
 ?>
 <style>
     #sidebar-wrapper {
         min-height: 100vh;
         width: 260px;
-        background-color: #245358; 
+        background-color: #245358;
         border-right: 1px solid rgba(255, 255, 255, 0.05);
         transition: all 0.3s;
         flex-shrink: 0;
     }
-    
+
     .user-profile-sidebar {
         display: block;
         text-decoration: none !important;
         transition: background 0.2s;
     }
+
     .user-profile-sidebar:hover {
         background-color: rgba(255, 255, 255, 0.05);
     }
@@ -69,17 +104,18 @@ $nama_dosen_aktif = $user_dosen['nama_dosen'] ?? $_SESSION['nama_user'] ?? 'Dose
         align-items: center;
         text-decoration: none !important;
     }
-    
+
     .list-group-item-action:hover,
     .list-group-item-action.active-menu {
         background-color: rgba(255, 255, 255, 0.15) !important;
         color: #ffffff !important;
         font-weight: 600;
     }
-    
+
     .list-group-item-action i {
         color: rgba(255, 255, 255, 0.6);
     }
+
     .list-group-item-action:hover i,
     .list-group-item-action.active-menu i {
         color: #ffffff !important;
@@ -116,25 +152,25 @@ $nama_dosen_aktif = $user_dosen['nama_dosen'] ?? $_SESSION['nama_user'] ?? 'Dose
 
             <div class="text-center py-3 mb-3">
                 <img src="<?= $base_path; ?>../assets/uploads/foto_dosen/<?= htmlspecialchars($foto_dosen ?? ''); ?>"
-                class="rounded-circle mb-2"
-                style="width:65px;height:65px;object-fit:cover;border:3px solid rgba(255,255,255,.2);"
-                onerror="this.src='<?= $base_path; ?>../assets/uploads/foto_dosen/default.png';">
+                    class="rounded-circle mb-2"
+                    style="width:65px;height:65px;object-fit:cover;border:3px solid rgba(255,255,255,.2);"
+                    onerror="this.src='<?= $base_path; ?>../assets/uploads/foto_dosen/default.png';">
 
                 <h6 class="text-white fw-bold mb-1">
-                <?= htmlspecialchars($nama_dosen_aktif); ?>
+                    <?= htmlspecialchars($nama_dosen_aktif); ?>
                 </h6>
             </div>
             <hr class="sidebar-divider my-1 mx-3" style="border-color: rgba(255,255,255,0.1);">
 
             <div class="list-group list-group-flush mt-1" style="max-height: calc(100vh - 260px); overflow-y: auto; padding-bottom: 5rem;">
-                
+
                 <a href="<?= $is_inside_folder ? '../dashboard.php' : 'dashboard.php'; ?>" class="list-group-item list-group-item-action <?= ($current_page == 'dashboard.php') ? 'active-menu' : ''; ?>">
                     <i class="fa-solid fa-chart-pie me-3" style="width: 20px;"></i>Dashboard Utama
                 </a>
 
-                <?php 
+                <?php
                 // Cek apakah URL mengandung folder akademik_mengajar untuk membuka dropdown otomatis
-                $is_akademik_active = (strpos($request_uri, '/akademik_mengajar/') !== false); 
+                $is_akademik_active = (strpos($request_uri, '/akademik_mengajar/') !== false);
                 ?>
                 <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#menuAkademik" aria-expanded="<?= $is_akademik_active ? 'true' : 'false'; ?>">
                     <i class="fa-solid fa-book me-3"></i>Akademik Mengajar
@@ -153,9 +189,9 @@ $nama_dosen_aktif = $user_dosen['nama_dosen'] ?? $_SESSION['nama_user'] ?? 'Dose
                     </a>
                 </div>
 
-                <?php 
+                <?php
                 // Cek apakah URL mengandung folder perwalian untuk membuka dropdown otomatis
-                $is_perwalian_active = (strpos($request_uri, '/perwalian/') !== false); 
+                $is_perwalian_active = (strpos($request_uri, '/perwalian/') !== false);
                 ?>
                 <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#menuPA" aria-expanded="<?= $is_perwalian_active ? 'true' : 'false'; ?>">
                     <i class="fa-solid fa-users me-3"></i>Perwalian
@@ -171,39 +207,41 @@ $nama_dosen_aktif = $user_dosen['nama_dosen'] ?? $_SESSION['nama_user'] ?? 'Dose
                     </a>
                 </div>
 
-                <a class="list-group-item list-group-item-action <?= ($current_page == 'profile.php') ? 'active-menu' : ''; ?>" href="<?= $base_path; ?>kinerja_dosen/profile.php">
-                    <i class="fa-solid fa-sliders me-3" style="width: 20px;"></i>Profil & Akun
+                <a href="<?= $base_path; ?>kinerja_dosen/profile.php"
+                    class="list-group-item list-group-item-action <?= $is_kinerja_active ? 'active-menu' : ''; ?>">
+                    <i class="fa-solid fa-sliders me-3" style="width:20px;"></i>
+                    Profil & Akun
                 </a>
 
             </div>
         </div>
 
         <div class="sidebar-footer">
-            <a href="<?= $is_inside_folder ? '../../auth/logout.php' : '../auth/logout.php'; ?>" class="btn btn-light text-danger w-100 rounded-pill py-2 small fw-bold border-0 d-flex align-items-center justify-content-center gap-2" style="font-size: 12px; background: #fef2f2;">
-                <i class="fa-solid fa-right-from-bracket"></i> Keluar Sistem
-            </a>
+           <a href="<?= $is_inside_folder ? '../../auth/logout.php' : '../auth/logout.php'; ?>" class="btn btn-light text-danger w-100 rounded-pill py-2 small fw-bold border-0 d-flex align-items-center justify-content-center gap-2" style="font-size: 12px; background: #fef2f2;">
+            <i class="fa-solid fa-right-from-bracket"></i> Keluar Sistem
+        </a>
         </div>
     </div>
 
     <div id="page-content-wrapper" class="d-flex flex-column flex-grow-1">
-        
+
         <nav class="navbar navbar-expand navbar-light bg-white px-4 py-3 border-bottom shadow-sm" style="min-height: 65px;">
             <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
-                
+
                 <span class="navbar-text fw-semibold text-dark">
                     <i class="fa-regular fa-calendar-check me-2" style="color: #245358;"></i>
-                    <?php 
+                    <?php
                     date_default_timezone_set('Asia/Jakarta');
                     $jam = date('H');
                     $sapaan = "Selamat Malam";
                     if ($jam >= 5 && $jam < 11) $sapaan = "Selamat Pagi";
                     elseif ($jam >= 11 && $jam < 15) $sapaan = "Selamat Siang";
                     elseif ($jam >= 15 && $jam < 18) $sapaan = "Selamat Sore";
-                    
-                    echo $sapaan . ", " . htmlspecialchars($nama_dosen_aktif); 
+
+                    echo $sapaan . ", " . htmlspecialchars($nama_dosen_aktif);
                     ?>
                 </span>
-                
+
                 <div class="ms-auto">
                     <span class="badge border p-2 fw-semibold" style="background-color: #f8f9fa; color: #245358; border-color: rgba(36, 83, 88, 0.2) !important;">
                         <i class="fa-solid fa-graduation-cap me-1"></i> TA: 2026/Ganjil
@@ -211,5 +249,5 @@ $nama_dosen_aktif = $user_dosen['nama_dosen'] ?? $_SESSION['nama_user'] ?? 'Dose
                 </div>
             </div>
         </nav>
-        
+
         <div class="container-fluid p-4 flex-grow-1" style="background-color: #f8fafc;">
