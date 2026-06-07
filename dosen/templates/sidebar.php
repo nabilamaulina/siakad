@@ -5,7 +5,6 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $current_page = basename($_SERVER['PHP_SELF']);
-
 $request_uri = $_SERVER['REQUEST_URI'];
 
 // =========================
@@ -151,10 +150,11 @@ $is_kinerja_active =
             </div>
 
             <div class="text-center py-3 mb-3">
-                <img src="<?= $base_path; ?>../assets/uploads/foto_dosen/<?= htmlspecialchars($foto_dosen ?? ''); ?>"
+                <!-- PERBAIKAN: Proteksi anti-looping menggunakan onerror="this.onerror=null; ..." -->
+                <img src="<?= $base_path; ?>../assets/uploads/foto_dosen/<?= htmlspecialchars($foto_dosen ?? 'default.png'); ?>"
                     class="rounded-circle mb-2"
                     style="width:65px;height:65px;object-fit:cover;border:3px solid rgba(255,255,255,.2);"
-                    onerror="this.src='<?= $base_path; ?>../assets/uploads/foto_dosen/default.png';">
+                    onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=<?= urlencode($nama_dosen_aktif); ?>&background=0DCAF0&color=fff&rounded=true';">
 
                 <h6 class="text-white fw-bold mb-1">
                     <?= htmlspecialchars($nama_dosen_aktif); ?>

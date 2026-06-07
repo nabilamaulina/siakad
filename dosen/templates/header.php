@@ -5,17 +5,18 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. PROTEKSI UTAMA: Jika tidak ada session user ATAU role bukan dosen, langsung tendang ke login
+// 1. PROTEKSI UTAMA: Validasi keberadaan session dan kecocokan role dosen
 if (!isset($_SESSION['id_user']) || !isset($_SESSION['role']) || strtolower(trim($_SESSION['role'])) !== 'dosen') {
-    // Menggunakan path absolut/kembali ke folder auth/login.php secara presisi
-    // Deteksi manual posisi file untuk mencegah broken redirect link
-    $request_uri = $_SERVER['REQUEST_URI'];
-    $is_subfolder = (strpos($request_uri, '/akademik_mengajar/') !== false || 
-                     strpos($request_uri, '/perwalian/') !== false || 
-                     strpos($request_uri, '/kinerja_dosen/') !== false);
-                     
-    $redirect_path = $is_subfolder ? '../../auth/login.php' : '../auth/login.php';
-    header("Location: " . $redirect_path);
+    
+    // Menggunakan skema deteksi protokol HTTP/HTTPS secara dinamis
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+    $host = $_SERVER['HTTP_HOST'];
+    
+    // Sesuaikan dengan nama sub-folder project Anda di localhost.
+    // Jika project Anda diakses langsung via localhost (tanpa folder siakad), ubah menjadi '/auth/login.php'
+    $login_url = $protocol . $host . '/siakad/auth/login.php';
+    
+    header("Location: " . $login_url);
     exit();
 }
 
