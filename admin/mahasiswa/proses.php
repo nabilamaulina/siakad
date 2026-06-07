@@ -32,7 +32,8 @@ if ($action === 'create') {
     $tanggal_lahir = $_POST['tanggal_lahir'] ?? null;
     $alamat = trim($_POST['alamat'] ?? '');
     $ipk = $_POST['ipk'] ?? 0.00;
-    $semester = $_POST['semester_saat_ini'] ?? 1;
+    // Nilai ini dialihkan untuk mengisi id_semester_masuk
+    $semester = $_POST['semester_saat_ini'] ?? 1; 
 
     $jurusan = $_POST['jurusan'] ?? 'Ilmu Komputer';
     $prodi = $_POST['prodi'] ?? '';
@@ -123,7 +124,7 @@ if ($action === 'create') {
 
         $id_user_baru = $pdo->lastInsertId();
 
-        // INSERT MAHASISWA
+        // INSERT MAHASISWA (Sudah menghapus kolom semester_saat_ini)
         $stmtMhs = $pdo->prepare("
             INSERT INTO mahasiswa
             (
@@ -137,7 +138,6 @@ if ($action === 'create') {
                 foto,
                 id_semester_masuk,
                 ipk,
-                semester_saat_ini,
                 email,
                 status_mahasiswa,
                 jurusan,
@@ -145,7 +145,7 @@ if ($action === 'create') {
             )
             VALUES
             (
-                ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
         ");
 
@@ -158,9 +158,8 @@ if ($action === 'create') {
             $tanggal_lahir ?: date('Y-m-d'),
             $alamat ?: '-',
             'default.png',
-            1,
+            $semester, // Masuk ke kolom id_semester_masuk
             $ipk,
-            $semester,
             $email_otomatis,
             $status_mahasiswa,
             $jurusan,
@@ -204,7 +203,7 @@ if ($action === 'update') {
     $tanggal_lahir = $_POST['tanggal_lahir'] ?? null;
     $alamat = trim($_POST['alamat'] ?? '');
     $ipk = $_POST['ipk'] ?? 0.00;
-    $semester_saat_ini = $_POST['semester_saat_ini'] ?? 1;
+    $semester_saat_ini = $_POST['semester_saat_ini'] ?? 1; // Dialihkan ke id_semester_masuk
     $status_mahasiswa = $_POST['status_mahasiswa'] ?? 'Aktif';
     $prodi = $_POST['prodi'] ?? '';
 
@@ -257,10 +256,11 @@ if ($action === 'update') {
         $nim_4_akhir = substr($oldData['nim'], -4);
         $email_otomatis = $nama_clean . $nim_4_akhir . '@student.unri.ac.id';
 
+        // UPDATE MAHASISWA (Sudah menyesuaikan kolom database asli)
         $sqlUp = "UPDATE mahasiswa SET 
                     nama_mahasiswa = ?, jenis_kelamin = ?, tempat_lahir = ?, 
                     tanggal_lahir = ?, alamat = ?, foto = ?, 
-                    ipk = ?, semester_saat_ini = ?, email = ?,
+                    ipk = ?, id_semester_masuk = ?, email = ?,
                     status_mahasiswa = ?, prodi = ?
                   WHERE id_mahasiswa = ?";
         
