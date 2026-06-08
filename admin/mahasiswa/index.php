@@ -26,6 +26,9 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
             <p class="text-secondary small mb-0">Kelola informasi profil, indeks prestasi (IPK), berkas foto, dan otentikasi login mahasiswa.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <button type="button" id="btn-hapus-massal" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm fw-semibold d-none">
+                <i class="fa-solid fa-trash-can me-1"></i> Hapus Terpilih (<span id="jumlah-terpilih">0</span>)
+            </button>
             <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalImportCSVMahasiswa">
                 <i class="fa-solid fa-file-excel me-1"></i> Impor via CSV
             </button>
@@ -64,7 +67,7 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
 
         <hr class="my-3 opacity-25 border-secondary">
 
-        <div class="d-flex flex-wrap gap-1 align-items-center justify-content-start overflow-x-auto pb-1 style-scrollbar">
+        <div class="d-flex flex-wrap gap-1 align-items-center justify-content-between overflow-x-auto pb-1 style-scrollbar">
             <style>
                 .style-scrollbar::-webkit-scrollbar {
                     height: 4px;
@@ -94,13 +97,19 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
                 }
             </style>
 
-            <button type="button" class="btn btn-light text-secondary rounded-circle btn-mhs-letter active" data-letter="ALL">ALL</button>
+            <div class="d-flex gap-1">
+                <button type="button" class="btn btn-light text-secondary rounded-circle btn-mhs-letter active" data-letter="ALL">ALL</button>
+                <?php
+                foreach (range('A', 'Z') as $char) {
+                    echo '<button type="button" class="btn btn-light text-secondary rounded-circle btn-mhs-letter mx-0.5" data-letter="' . $char . '">' . $char . '</button>';
+                }
+                ?>
+            </div>
 
-            <?php
-            foreach (range('A', 'Z') as $char) {
-                echo '<button type="button" class="btn btn-light text-secondary rounded-circle btn-mhs-letter mx-0.5" data-letter="' . $char . '">' . $char . '</button>';
-            }
-            ?>
+            <div class="form-check ms-3 mt-2 mt-md-0 me-2 bg-light p-2 px-3 rounded-pill border">
+                <input class="form-check-input style-pointer ms-0 me-2" type="checkbox" id="check-all-mhs">
+                <label class="form-check-label small fw-bold text-secondary style-pointer shadow-none" for="check-all-mhs">Pilih Semua Halaman Ini</label>
+            </div>
         </div>
     </div>
 
@@ -202,7 +211,7 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
 
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-bold mb-1">ID Semester Masuk *</label>
-                            <input type="number" name="id_semester_masuk" class="form-control rounded-3 bg-white text-dark small" value="1" min="1" max="14" required>
+                            <input type="number" name="semester_saat_ini" class="form-control rounded-3 bg-white text-dark small" value="1" min="1" max="14" required>
                         </div>
 
                         <div class="col-md-6">
@@ -275,7 +284,7 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
                 <div class="modal-body p-4 row g-3">
                     <div class="col-md-6">
                         <label class="form-label small fw-bold text-secondary">NIM *</label>
-                        <input type="text" name="nim" id="edit-nim" class="form-control rounded-3 bg-white text-dark small" required>
+                        <input type="text" name="nim" id="edit-nim" class="form-control rounded-3 bg-light text-muted small" readonly>
                     </div>
 
                     <div class="col-md-6">
@@ -308,7 +317,7 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
 
                     <div class="col-md-6">
                         <label class="form-label small fw-bold text-secondary">Email *</label>
-                        <input type="email" name="email" id="edit-email" class="form-control rounded-3 bg-white text-dark small" required>
+                        <input type="email" name="email" id="edit-email" class="form-control rounded-3 bg-light text-muted small" readonly>
                     </div>
 
                     <div class="col-md-6">
@@ -341,7 +350,7 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
 
                     <div class="col-md-6">
                         <label class="form-label small fw-bold text-secondary">ID Semester Masuk *</label>
-                        <input type="number" name="id_semester_masuk" id="edit-semester-masuk" class="form-control rounded-3 bg-white text-dark small" required>
+                        <input type="number" name="semester_saat_ini" id="edit-semester-masuk" class="form-control rounded-3 bg-white text-dark small" required>
                     </div>
 
                     <div class="col-md-6">
@@ -442,8 +451,20 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
             },
             success: function(html) {
                 $('#mhs-directory-container').html(html);
+                $('#check-all-mhs').prop('checked', false);
+                toggleTombolHapusMassal();
             }
         });
+    }
+
+    function toggleTombolHapusMassal() {
+        let terpilih = $('.check-item-mhs:checked').length;
+        if (terpilih > 0) {
+            $('#jumlah-terpilih').text(terpilih);
+            $('#btn-hapus-massal').removeClass('d-none');
+        } else {
+            $('#btn-hapus-massal').addClass('d-none');
+        }
     }
 
     $(document).ready(function() {
@@ -475,6 +496,73 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
             loadMahasiswa();
         });
 
+        // SELECT ALL CHECKBOX MASTER
+        $('#check-all-mhs').change(function() {
+            let status = $(this).is(':checked');
+            $('.check-item-mhs').prop('checked', status);
+            toggleTombolHapusMassal();
+        });
+
+        // CHECKBOX PER BARIS TABEL
+        $(document).on('change', '.check-item-mhs', function() {
+            let totalItem = $('.check-item-mhs').length;
+            let totalChecked = $('.check-item-mhs:checked').length;
+            
+            if (totalItem === totalChecked) {
+                $('#check-all-mhs').prop('checked', true);
+            } else {
+                $('#check-all-mhs').prop('checked', false);
+            }
+            toggleTombolHapusMassal();
+        });
+
+        // PROSES HAPUS MASSAL TERPILIH
+        $('#btn-hapus-massal').click(function() {
+            let listId = [];
+            $('.check-item-mhs:checked').each(function() {
+                listId.push($(this).val());
+            });
+
+            if (listId.length === 0) return;
+
+            Swal.fire({
+                title: 'Hapus Semua Terpilih?',
+                text: "Sebanyak " + listId.length + " data mahasiswa akan dihapus permanen sekaligus dari sistem beserta akun loginnya!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus Semua!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: 'proses.php',
+                        type: 'POST',
+                        data: {
+                            action: 'delete_massal',
+                            ids: listId,
+                            csrf_token: '<?= $token; ?>'
+                        },
+                        success: function(res) {
+                            let data = (typeof res === 'object') ? res : JSON.parse(res);
+                            if (data.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil Dihapus!',
+                                    text: data.message,
+                                    confirmButtonColor: '#245358'
+                                });
+                                loadMahasiswa();
+                            } else {
+                                Swal.fire('Gagal!', data.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        // MODAL DETAIL
         $(document).on('click', '.btn-detail-mhs', function() {
             let id = $(this).data('id');
             $('#konten-detail-mhs').html('<div class="text-center p-3"><div class="spinner-border spinner-border-sm text-success"></div></div>');
@@ -482,21 +570,23 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
             $.ajax({
                 url: 'get_mahasiswa.php',
                 type: 'GET',
-                data: {
-                    id: id
-                },
+                data: { id: id },
                 success: function(res) {
                     $('#konten-detail-mhs').html(res);
                 }
             });
         });
 
+        // TAMBAH DATA MAHASISWA
         $('#form-tambah-mhs').submit(function(e) {
             e.preventDefault();
+            let formData = new FormData(this);
             $.ajax({
                 url: 'proses.php',
                 type: 'POST',
-                data: $(this).serialize(),
+                data: formData,
+                contentType: false,
+                processData: false,
                 success: function(res) {
                     let data = (typeof res === 'object') ? res : JSON.parse(res);
                     if (data.status === 'success') {
@@ -521,23 +611,35 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
             });
         });
 
+        // TRIGER TOMBOL EDIT DARI MODAL DETAIL
         $(document).on('click', '#btn-buka-edit-modal', function() {
             $('#modalDetailMhs').modal('hide');
             $('#edit-id').val($(this).data('id'));
+            $('#edit-nim').val($(this).data('id')); // placeholder NIM sewaktu ditarik
             $('#edit-nama').val($(this).data('nama'));
             $('#edit-jk').val($(this).data('jk'));
             $('#edit-tempat').val($(this).data('tempat'));
             $('#edit-tgl').val($(this).data('tgl'));
             $('#edit-alamat').val($(this).data('alamat'));
-            $('#edit-semester').val($(this).data('semester'));
+            $('#edit-semester-masuk').val($(this).data('semester'));
             $('#edit-ipk').val($(this).data('ipk'));
             $('#edit-status').val($(this).data('status'));
             $('#edit-prodi').val($(this).data('prodi'));
+            
+            // Mengisi field tambahan dari data attribute
+            $('#edit-jurusan').val($(this).data('jurusan') || 'Ilmu Komputer');
+            $('#edit-email').val($(this).data('email') || '');
+            
+            // Ambil NIM asli ter-update dari baris tabel jika ada
+            let rowNim = $(this).closest('.modal-content').find('.badge').text().replace('NIM. ', '').trim();
+            $('#edit-nim').val(rowNim);
+
             setTimeout(function() {
                 $('#modalEditMahasiswa').modal('show');
             }, 400);
         });
 
+        // SIMPAN EDIT DATA MAHASISWA
         $('#form-edit-mhs').submit(function(e) {
             e.preventDefault();
             let formData = new FormData(this);
@@ -570,6 +672,7 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
             });
         });
 
+        // HAPUS SATU DATA MAHASISWA
         $(document).on('click', '.btn-hapus-mhs', function(e) {
             e.stopPropagation();
             let id_mhs = $(this).data('id');
@@ -607,4 +710,5 @@ $data_dosen = $stmt_dosen->fetchAll(PDO::FETCH_ASSOC);
         });
     });
 </script>
+<style>.style-pointer { cursor: pointer; }</style>
 <?php require_once '../../templates/footer.php'; ?>
