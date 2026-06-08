@@ -1,31 +1,42 @@
 <?php
 // admin/akademik/absensi.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Pastikan layout template terpanggil dengan benar
 require_once '../../templates/header.php';
 require_once '../../templates/sidebar.php';
 require_once '../../config/database.php';
 
-// Ambil semua list jadwal mengajar prodi untuk dropdown filter
-$jadwal_stmt = $pdo->query("SELECT j.id_jadwal, mk.nama_mk, k.nama_kelas, d.nama_dosen 
-                            FROM jadwal j
-                            JOIN mata_kuliah mk ON j.id_mk = mk.id_mk
-                            JOIN kelas k ON j.id_kelas = k.id_kelas
-                            JOIN dosen d ON j.id_dosen = d.id_dosen
-                            ORDER BY mk.nama_mk ASC");
-$all_jadwal = $jadwal_stmt->fetchAll();
+// Ambil semua list jadwal mengajar prodi untuk dropdown filter (Diselaraskan dengan database Anda)
+try {
+    $jadwal_stmt = $pdo->query("SELECT j.id_jadwal, j.kode_mk, j.nama_matakuliah, j.id_kelas, j.dosen_pengajar 
+                                FROM jadwal j 
+                                ORDER BY j.nama_matakuliah ASC");
+    $all_jadwal = $jadwal_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Gagal mengambil data jadwal: " . $e->getMessage());
+}
 
 $id_jadwal_terpilih = $_GET['id_jadwal'] ?? '';
 $pertemuan_terpilih = $_GET['pertemuan'] ?? '1';
 $mahasiswa_list = [];
 
-if (!empty($id_jadwal_terpilled)) {
-    // Ambil list mahasiswa yang terdaftar di kelas matakuliah ini berdasarkan KRS
-    $mhs_stmt = $pdo->prepare("SELECT k.id_krs, m.id_mahasiswa, m.nim, m.nama_mahasiswa 
-                               FROM krs k
-                               JOIN mahasiswa m ON k.id_mahasiswa = m.id_mahasiswa
-                               WHERE k.id_jadwal = ?
-                               ORDER BY m.nim ASC");
-    $mhs_stmt->execute([$id_jadwal_terpilih]);
-    $mahasiswa_list = $mhs_stmt->fetchAll();
+// PERBAIKAN BUG #A: Memperbaiki typo variabel dari $id_jadwal_terpilled menjadi $id_jadwal_terpilih
+if (!empty($id_jadwal_terpilih)) {
+    try {
+        // PERBAIKAN BUG #B: Relasi krs menggunakan id_mahasiswa ke tabel mahasiswa, disaring berdasarkan krs yang disetujui
+        $mhs_stmt = $pdo->prepare("SELECT k.id_krs, m.id_mahasiswa, m.nim, m.nama_mahasiswa 
+                                   FROM krs k
+                                   JOIN mahasiswa m ON k.id_mahasiswa = m.id_mahasiswa
+                                   WHERE k.id_jadwal = ? AND k.status_validasi = 'Disetujui'
+                                   ORDER BY m.nim ASC");
+        $mhs_stmt->execute([$id_jadwal_terpilih]);
+        $mahasiswa_list = $mhs_stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        die("Gagal memuat daftar mahasiswa: " . $e->getMessage());
+    }
 }
 ?>
 
@@ -55,7 +66,7 @@ if (!empty($id_jadwal_terpilled)) {
                         <option value="">-- Pilih Mata Kuliah Kelas --</option>
                         <?php foreach ($all_jadwal as $j): ?>
                             <option value="<?= $j['id_jadwal']; ?>" <?= ($id_jadwal_terpilih == $j['id_jadwal']) ? 'selected' : ''; ?>>
-                                <?= htmlspecialchars($j['nama_mk'] . ' - ' . $j['nama_kelas'] . ' [' . $j['nama_dosen'] . ']'); ?>
+                                <?= htmlspecialchars($j['nama_matakuliah'] . ' - Kelas ' . $j['id_kelas'] . ' [' . $j['dosen_pengajar'] . ']'); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -107,33 +118,32 @@ if (!empty($id_jadwal_terpilled)) {
                             <tbody class="small text-secondary">
                                 <?php if (count($mahasiswa_list) > 0): ?>
                                     <?php foreach ($mahasiswa_list as $mhs): 
-                                        // FIX BUG #D: Mengubah query check agar mencocokkan id_mahasiswa dan id_jadwal, bukan id_krs lama
-                                        $check_stmt = $pdo->prepare("SELECT status_hadir FROM presensi 
+                                        // PERBAIKAN BUG #C & #D: Query disesuaikan menargetkan tabel absensi dan kolom status milik Anda
+                                        $check_stmt = $pdo->prepare("SELECT status FROM absensi 
                                                                      WHERE id_mahasiswa = ? AND id_jadwal = ? AND pertemuan_ke = ?");
                                         $check_stmt->execute([$mhs['id_mahasiswa'], $id_jadwal_terpilih, $pertemuan_terpilih]);
-                                        $old_status = $check_stmt->fetchColumn() ?: 'H';
+                                        $old_status = $check_stmt->fetchColumn() ?: 'A'; // Default di-set Alpha jika dosen belum mengisi
                                     ?>
                                         <tr>
                                             <td class="text-start font-monospace fw-bold text-primary"><?= htmlspecialchars($mhs['nim']); ?></td>
                                             <td class="text-start fw-bold text-dark"><?= htmlspecialchars($mhs['nama_mahasiswa']); ?></td>
                                             
                                             <td>
-                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="H" <?= $old_status == 'H' ? 'checked' : ''; ?> class="form-check-input border-success shadow-none">
+                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="Hadir" <?= $old_status == 'Hadir' ? 'checked' : ''; ?> class="form-check-input border-success shadow-none">
                                             </td>
                                             <td>
-                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="S" <?= $old_status == 'S' ? 'checked' : ''; ?> class="form-check-input border-primary shadow-none">
+                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="Sakit" <?= $old_status == 'Sakit' ? 'checked' : ''; ?> class="form-check-input border-primary shadow-none">
                                             </td>
                                             <td>
-                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="I" <?= $old_status == 'I' ? 'checked' : ''; ?> class="form-check-input border-warning shadow-none">
+                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="Izin" <?= $old_status == 'Izin' ? 'checked' : ''; ?> class="form-check-input border-warning shadow-none">
                                             </td>
                                             <td>
-                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="A" <?= $old_status == 'A' ? 'checked' : ''; ?> class="form-check-input border-danger shadow-none">
+                                                <input type="radio" name="status_absen[<?= $mhs['id_mahasiswa']; ?>]" value="Alpha" <?= $old_status == 'Alpha' ? 'checked' : ''; ?> class="form-check-input border-danger shadow-none">
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
-                                <?php border: ?>
-                                    <tr>
-                                        <td colspan="6" class="text-center py-5 text-muted">Belum ada mahasiswa kelas ini di tabel data rencana studi (KRS).</td>
+                                <?php else: ?> <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">Belum ada mahasiswa kelas ini di tabel data rencana studi (KRS) yang disetujui.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
