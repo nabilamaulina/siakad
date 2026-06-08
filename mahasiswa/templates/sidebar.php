@@ -181,6 +181,7 @@ $base_path = $is_inside_folder ? '../' : '';
             </a>
 
             <?php 
+            // PERBAIKAN LOGIKA: Menyamakan nama file secara presisi dengan berkas riwayat_absensi.php
             $is_akademik_active = (
                 $current_page == 'jadwal.php' ||
                 $current_page == 'absensi.php' ||
