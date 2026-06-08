@@ -8,6 +8,25 @@ require_once __DIR__ . '/../templates/header.php';
 require_once __DIR__ . '/../templates/sidebar.php'; 
 require_once __DIR__ . '/../../config/database.php'; 
 
+// Set timezone agar presisi sesuai waktu lokal wilayah Anda
+date_default_timezone_set('Asia/Jakarta');
+
+// Mengambil data waktu server saat ini
+$hari_ini = date('N'); // 1 (Senin) sampai 7 (Minggu)
+$jam_sekarang = date('H:i:s');
+
+// Array bantuan untuk mencocokkan format hari string di database Anda
+$nama_hari_array = [
+    1 => 'Senin',
+    2 => 'Selasa',
+    3 => 'Rabu',
+    4 => 'Kamis',
+    5 => 'Jumat',
+    6 => 'Sabtu',
+    7 => 'Minggu'
+];
+$hari_ini_string = $nama_hari_array[$hari_ini] ?? '';
+
 $id_user_dosen = $_SESSION['id_user'] ?? 1;
 
 try {
@@ -115,6 +134,12 @@ try {
                 <tbody style="font-size: 14px;">
                     <?php if ($total_jadwal > 0): ?>
                         <?php foreach ($list_jadwal as $row): ?>
+                            <?php 
+                            // Logika Validasi Waktu Real-Time
+                            $apakah_hari_ini = (strcasecmp($row['hari'], $hari_ini_string) === 0);
+                            $apakah_jam_sesuai = ($jam_sekarang >= $row['jam_mulai'] && $jam_sekarang <= $row['jam_selesai']);
+                            $bisa_absen = ($apakah_hari_ini && $apakah_jam_sesuai);
+                            ?>
                             <tr>
                                 <td class="py-3 ps-4">
                                     <span class="d-block fw-bold text-dark mb-1"><?= htmlspecialchars($row['hari']); ?></span>
@@ -134,9 +159,15 @@ try {
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <a href="presensi.php?id_jadwal=<?= $row['id_jadwal']; ?>" class="btn btn-sm btn-success px-3 rounded-3 fw-medium shadow-sm" style="background-color: #245358; border-color: #245358;">
-                                        <i class="fa-solid fa-clipboard-user me-1"></i> Absensi
-                                    </a>
+                                    <?php if ($bisa_absen): ?>
+                                        <a href="presensi.php?id_jadwal=<?= $row['id_jadwal']; ?>" class="btn btn-sm btn-success px-3 rounded-3 fw-medium shadow-sm" style="background-color: #245358; border-color: #245358;">
+                                            <i class="fa-solid fa-clipboard-user me-1"></i> Absensi
+                                        </a>
+                                    <?php else: ?>
+                                        <button class="btn btn-sm btn-secondary px-3 rounded-3 fw-medium disabled" style="opacity: 0.6; cursor: not-allowed;" title="Belum memasuki waktu perkuliahan">
+                                            <i class="fa-solid fa-lock me-1"></i> Terkunci
+                                        </button>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
