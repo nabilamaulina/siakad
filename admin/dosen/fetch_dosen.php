@@ -22,111 +22,117 @@ $letter = $_GET['letter'] ?? 'ALL';
 $search = $_GET['search'] ?? '';
 $jabatan = $_GET['jabatan'] ?? '';
 
-// Struktur dasar query SQL menggunakan sistem Named Bindings
 $sql = "SELECT * FROM dosen WHERE 1=1";
 $params = [];
 
-// Filter 1: Berdasarkan Abjad Depan Nama Dosen (Jika bukan 'ALL')
 if ($letter !== 'ALL' && !empty($letter)) {
     $sql .= " AND nama_dosen LIKE :letter";
     $params[':letter'] = $letter . '%';
 }
 
-// Filter 2: Berdasarkan Keyword Pencarian Nama Dosen
 if (!empty($search)) {
-    $sql .= " AND nama_dosen LIKE :search";
+    $sql .= " AND (nama_dosen LIKE :search OR nidn LIKE :search)";
     $params[':search'] = '%' . $search . '%';
 }
 
-// Filter 3: Berdasarkan Pilihan Jabatan Fungsional
 if (!empty($jabatan)) {
     $sql .= " AND jabatan = :jabatan";
     $params[':jabatan'] = $jabatan;
 }
 
-// Urutkan hasil pencarian berdasarkan nama dosen dari A ke Z
 $sql .= " ORDER BY nama_dosen ASC";
 
 $stmt = $pdo->prepare($sql);
-$stmt->execute($params); // Menggunakan parameter nama terikat, urutan array tidak akan bentrok lagi
+$stmt->execute($params);
 $data_dosen = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// JIKA DATA DOSEN DITEMUKAN
 if (count($data_dosen) > 0) {
-    echo '<div class="row g-3">';
-    foreach ($data_dosen as $dsn) {
-        // Logika penentuan warna badge jabatan fungsional agar rapi
-        $badgeColor = 'bg-secondary';
-        if ($dsn['jabatan'] == 'Asisten Ahli') $badgeColor = 'bg-info text-dark';
-        elseif ($dsn['jabatan'] == 'Lektor') $badgeColor = 'bg-primary';
-        elseif ($dsn['jabatan'] == 'Lektor Kepala') $badgeColor = 'bg-warning text-dark';
-        elseif ($dsn['jabatan'] == 'Profesor' || $dsn['jabatan'] == 'Professor') $badgeColor = 'bg-danger';
-        ?>
-        
-        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12" id="card-dosen-<?= $dsn['id_dosen']; ?>">
-            <div class="card border-0 shadow-sm rounded-4 h-100 card-dosen-klik style-card-hover" 
-                 data-id="<?= $dsn['id_dosen']; ?>" 
-                 style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; background: #ffffff;">
-                
-                <div class="card-body p-3.5 text-center d-flex flex-column justify-content-between">
+    ?>
+    <div class="table-responsive border rounded-4 bg-white shadow-sm">
+        <table class="table table-hover align-middle mb-0 text-dark" style="font-size: 13px;">
+            <thead class="table-light text-secondary border-bottom" style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">
+                <tr>
+                    <th width="50" class="ps-3 text-center">PILIH</th>
+                    <th width="70" class="text-center">FOTO</th>
+                    <th>NAMA / NIDN</th>
+                    <th>JABATAN FUNGSIONAL</th>
+                    <th>EMAIL RESMI</th>
+                    <th>NO. HANDPHONE</th>
+                    <th width="150" class="pe-3 text-center">AKSI</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                foreach ($data_dosen as $dsn) {
+                    $badgeColor = 'bg-secondary';
+                    if ($dsn['jabatan'] == 'Asisten Ahli') $badgeColor = 'bg-info text-dark';
+                    elseif ($dsn['jabatan'] == 'Lektor') $badgeColor = 'bg-primary text-white';
+                    elseif ($dsn['jabatan'] == 'Lektor Kepala') $badgeColor = 'bg-warning text-dark';
+                    elseif ($dsn['jabatan'] == 'Profesor' || $dsn['jabatan'] == 'Professor') $badgeColor = 'bg-danger text-white';
                     
-                    <div class="d-flex justify-content-end gap-1 posisi-tombol mb-2">
-                        <button type="button" class="btn btn-light text-dark btn-sm rounded-circle p-0 btn-edit-dosen" 
-                                data-id="<?= $dsn['id_dosen']; ?>" style="width: 28px; height: 28px;" title="Ubah Data">
-                            <i class="fa-solid fa-user-pen text-secondary small"></i>
-                        </button>
-                        <button type="button" class="btn btn-light text-danger btn-sm rounded-circle p-0 btn-hapus-dosen" 
-                                data-id="<?= $dsn['id_dosen']; ?>" data-nama="<?= $dsn['nama_dosen']; ?>" style="width: 28px; height: 28px;" title="Hapus Permanen">
-                            <i class="fa-solid fa-trash-can small"></i>
-                        </button>
-                    </div>
-
-                    <div class="mb-3">
-                        <img src="../../uploads/profile/<?= $dsn['foto']; ?>" 
-                             class="rounded-circle border shadow-sm" 
-                             width="80" height="80" 
-                             style="object-fit: cover;"
-                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
-                    </div>
-
-                    <div>
-                        <h6 class="fw-bold text-navy mb-1 text-truncate" title="<?= $dsn['nama_dosen']; ?>" style="color: #0F172A; font-size: 14px;">
-                            <?= $dsn['nama_dosen']; ?>
-                        </h6>
-                        <p class="text-muted small mb-2" style="font-size: 11.5px;">NIDN: <b><?= $dsn['nidn']; ?></b></p>
-                        
-                        <span class="badge <?= $badgeColor; ?> rounded-pill px-3 py-1.5" style="font-size: 10.5px; letter-spacing: 0.3px;">
-                            <?= $dsn['jabatan'] ?: 'Belum Ada Jabatan'; ?>
-                        </span>
-                    </div>
-
-                    <hr class="my-3 opacity-25 border-secondary">
-
-                    <div class="text-start small text-secondary" style="font-size: 11px;">
-                        <div class="text-truncate mb-1"><i class="fa-regular fa-envelope me-1.5 opacity-70"></i><?= $dsn['email'] ?: '-'; ?></div>
-                        <div class="text-truncate"><i class="fa-brands fa-whatsapp me-1.5 opacity-70"></i><?= $dsn['no_hp'] ?: '-'; ?></div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <?php
-    }
-    echo '</div>';
-
+                    $foto_dosen = !empty($dsn['foto']) ? $dsn['foto'] : 'default.png';
+                    ?>
+                    <tr>
+                        <td class="ps-3 text-center">
+                            <input type="checkbox" class="form-check-input check-item-dosen style-pointer border border-secondary" 
+                                   style="width: 16px; height: 16px;" value="<?= $dsn['id_dosen']; ?>">
+                        </td>
+                        <td class="text-center">
+                            <img src="../../assets/uploads/profile/<?= $foto_dosen; ?>" class="rounded-circle border shadow-xs" 
+                                 style="width: 38px; height: 38px; object-fit: cover;" 
+                                 onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+                        </td>
+                        <td>
+                            <span class="fw-bold text-navy d-block mb-0 text-truncate" style="max-width: 250px;" title="<?= htmlspecialchars($dsn['nama_dosen']); ?>">
+                                <?= htmlspecialchars($dsn['nama_dosen']); ?>
+                            </span>
+                            <small class="text-secondary font-monospace" style="font-size: 11px;">NIDN. <?= htmlspecialchars($dsn['nidn']); ?></small>
+                        </td>
+                        <td>
+                            <span class="badge <?= $badgeColor; ?> rounded-pill px-2.5 py-1.5 small text-uppercase" style="font-size: 9.5px; font-weight: 700;">
+                                <?= htmlspecialchars($dsn['jabatan'] ?: 'Belum Ada Jabatan'); ?>
+                            </span>
+                        </td>
+                        <td class="text-muted font-monospace" style="font-size: 12px;">
+                            <?= htmlspecialchars($dsn['email'] ?: '-'); ?>
+                        </td>
+                        <td class="text-secondary">
+                            <?= htmlspecialchars($dsn['no_hp'] ?: '-'); ?>
+                        </td>
+                        <td class="pe-3 text-center">
+                            <div class="d-flex gap-1 justify-content-center">
+                                <button type="button" class="btn btn-light text-secondary border btn-sm rounded-pill btn-detail-dosen px-2.5 py-1" 
+                                        style="font-size: 11px; font-weight: 600;" data-id="<?= $dsn['id_dosen']; ?>">
+                                    <i class="fa-solid fa-address-card me-1 text-muted"></i> Detail
+                                </button>
+                                <button type="button" class="btn btn-light text-dark border btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center btn-edit-dosen" 
+                                        style="width: 28px; height: 28px; flex-shrink: 0;" data-id="<?= $dsn['id_dosen']; ?>">
+                                    <i class="fa-solid fa-user-pen fa-xs text-secondary"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm border rounded-circle p-0 d-flex align-items-center justify-content-center btn-hapus-dosen" 
+                                        style="width: 28px; height: 28px; flex-shrink: 0;" data-id="<?= $dsn['id_dosen']; ?>" data-nama="<?= htmlspecialchars($dsn['nama_dosen']); ?>">
+                                    <i class="fa-solid fa-trash fa-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php
+                }
+                ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
     echo '<style>
-            .style-card-hover:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08) !important; }
+            .table-hover tbody tr:hover { background-color: rgba(36,83,88, 0.03) !important; }
+            .shadow-xs { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05) !important; }
+            .style-pointer { cursor: pointer; }
           </style>';
-
 } else {
     ?>
-    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
-        <div class="py-4">
-            <i class="fa-solid fa-user-slash fa-4x mb-3 text-muted opacity-30"></i>
-            <h5 class="fw-bold text-dark mb-1">Dosen Tidak Ditemukan</h5>
-            <p class="text-secondary small mb-0 px-md-5">Tidak ada data profil dosen yang cocok dengan kombinasi filter abjad, kata kunci pencarian nama, ataupun jabatan fungsional yang Anda tentukan.</p>
-        </div>
+    <div class="text-center p-5 bg-white rounded-4 border shadow-sm">
+        <i class="fa-solid fa-user-slash fa-3x text-muted mb-3 opacity-50"></i>
+        <h6 class="text-secondary fw-semibold">Tidak ada data dosen ditemukan.</h6>
     </div>
     <?php
 }

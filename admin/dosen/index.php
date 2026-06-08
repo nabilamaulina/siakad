@@ -6,9 +6,20 @@ require_once '../../config/database.php';
 
 // Proteksi halaman: Hanya boleh diakses oleh Admin
 middleware(['admin']); 
+
+if (!function_exists('generate_csrf_token')) {
+    function generate_csrf_token()
+    {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+}
+$token = generate_csrf_token();
 ?>
 
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=400;500;600;700&display=swap" rel="stylesheet">
 <div class="container-fluid py-3" style="font-family: 'Plus Jakarta Sans', sans-serif;">
     
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
@@ -17,6 +28,9 @@ middleware(['admin']);
             <p class="text-secondary small mb-0">Kelola, cari berdasarkan abjad, dan penuhi administrasi data profil dosen SOBAT IK.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <button type="button" id="btn-hapus-massal-dosen" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm fw-semibold d-none">
+                <i class="fa-solid fa-trash-can me-1"></i> Hapus Terpilih (<span id="jumlah-terpilih-dosen">0</span>)
+            </button>
             <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalImportCSVDosen">
                 <i class="fa-solid fa-file-import me-1.5"></i>Impor via CSV
             </button>
@@ -57,31 +71,38 @@ middleware(['admin']);
 
         <hr class="my-3 opacity-25 border-secondary">
             
-        <div class="d-flex flex-wrap gap-1 align-items-center justify-content-start overflow-x-auto pb-1 style-scrollbar">
+        <div class="d-flex flex-wrap gap-1 align-items-center justify-content-between overflow-x-auto pb-1 style-scrollbar">
             <style>
-                /* Mengatur scrollbar halus jika daftar huruf melimpah di layar ponsel */
                 .style-scrollbar::-webkit-scrollbar { height: 4px; }
                 .style-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
                 
-                /* Gaya Tombol Bulat Filter Huruf */
                 .btn-letter-filter { font-size: 11px; width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; cursor: pointer; }
-                .btn-letter-filter.active { background-color: #0F172A !important; color: #ffffff !important; font-weight: bold; }
+                .btn-letter-filter.active { background-color: #245358 !important; color: #ffffff !important; font-weight: bold; }
+                .style-pointer { cursor: pointer; }
             </style>
             
-            <button type="button" class="btn btn-light text-secondary rounded-circle btn-letter-filter active" data-letter="ALL">ALL</button>
-            
-            <?php 
-            // Render otomatis huruf A sampai Z menggunakan PHP loop
-            foreach (range('A', 'Z') as $char) {
-                echo '<button type="button" class="btn btn-light text-secondary rounded-circle btn-letter-filter mx-0.5" data-letter="'.$char.'">'.$char.'</button>';
-            }
-            ?>
+            <div class="d-flex gap-1">
+                <button type="button" class="btn btn-light text-secondary rounded-circle btn-letter-filter active" data-letter="ALL">ALL</button>
+                
+                <?php 
+                foreach (range('A', 'Z') as $char) {
+                    echo '<button type="button" class="btn btn-light text-secondary rounded-circle btn-letter-filter mx-0.5" data-letter="'.$char.'">'.$char.'</button>';
+                }
+                ?>
+            </div>
+
+            <div class="form-check ms-3 mt-2 mt-md-0 me-2 bg-light p-2 px-3 rounded-pill border">
+                <input class="form-check-input style-pointer ms-0 me-2" type="checkbox" id="check-all-dosen">
+                <label class="form-check-label small fw-bold text-secondary style-pointer shadow-none" for="check-all-dosen">Pilih Semua Halaman Ini</label>
+            </div>
         </div>
     </div>
 
+    <!-- Container Utama Render Tabel Dosen -->
     <div id="direktoriDosenContainer"></div>
 </div>
 
+<!-- MODAL DETAIL DOSEN -->
 <div class="modal fade" id="modalDetailDosen" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
@@ -89,8 +110,7 @@ middleware(['admin']);
                 <h5 class="modal-title fw-bold small"><i class="fa-solid fa-id-card me-2"></i>Profil Detail Dosen</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4 text-center" id="detailDosenBody">
-            </div>
+            <div class="modal-body p-4 text-center" id="detailDosenBody"></div>
             <div class="modal-footer bg-light border-0 rounded-bottom-4">
                 <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Tutup</button>
             </div>
@@ -98,6 +118,7 @@ middleware(['admin']);
     </div>
 </div>
 
+<!-- MODAL TAMBAH DOSEN -->
 <div class="modal fade" id="modalDosen" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form id="formTambahDosen" class="modal-content border-0 rounded-4 shadow">
@@ -106,7 +127,7 @@ middleware(['admin']);
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token(); ?>">
+                <input type="hidden" name="csrf_token" value="<?= $token; ?>">
                 
                 <div class="mb-3">
                     <label class="form-label text-secondary small fw-bold">NIDN (Username Login)</label>
@@ -147,15 +168,16 @@ middleware(['admin']);
     </div>
 </div>
 
+<!-- MODAL EDIT DOSEN -->
 <div class="modal fade" id="modalEditDosen" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form id="formEditDosen" class="modal-content border-0 rounded-4 shadow">
+        <form id="formEditDosen" enctype="multipart/form-data" class="modal-content border-0 rounded-4 shadow">
             <div class="modal-header bg-dark text-white border-0 rounded-top-4" style="background-color: #0f172a !important;">
                 <h5 class="modal-title fw-bold small"><i class="fa-solid fa-user-pen me-2"></i>Ubah Data Profil Dosen</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token(); ?>">
+                <input type="hidden" name="csrf_token" value="<?= $token; ?>">
                 <input type="hidden" name="id_dosen" id="edit_id_dosen">
                 
                 <div class="mb-3">
@@ -184,6 +206,10 @@ middleware(['admin']);
                     <label class="form-label text-secondary small fw-bold">No. Handphone (WA)</label>
                     <input type="text" name="no_hp" id="edit_no_hp" class="form-control rounded-3 bg-white text-dark small">
                 </div>
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">Perbarui Berkas Foto Profil (Opsional)</label>
+                    <input type="file" name="foto_input" class="form-control rounded-3 bg-white text-dark small" accept="image/*">
+                </div>
             </div>
             <div class="modal-footer bg-light border-0 rounded-bottom-4">
                 <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
@@ -193,6 +219,7 @@ middleware(['admin']);
     </div>
 </div>
 
+<!-- MODAL IMPORT CSV DOSEN -->
 <div class="modal fade" id="modalImportCSVDosen" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form action="proses_import.php" method="POST" enctype="multipart/form-data" class="modal-content border-0 rounded-4 shadow">
@@ -201,7 +228,7 @@ middleware(['admin']);
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token(); ?>">
+                <input type="hidden" name="csrf_token" value="<?= $token; ?>">
                 
                 <div class="alert alert-warning border-0 rounded-3 shadow-sm mb-3 p-3">
                     <h6 class="fw-bold small mb-1"><i class="fa-solid fa-circle-exclamation me-1.5"></i>Aturan Struktur File:</h6>
@@ -233,7 +260,6 @@ middleware(['admin']);
 $(document).ready(function() {
     let currentLetter = 'ALL';
 
-    // Fungsi muat data terpadu (menggabungkan semua filter abjad, keyword, dan jabatan)
     function loadDosen(letter = 'ALL', search = '', jabatan = '') {
         $.ajax({
             url: 'fetch_dosen.php',
@@ -241,14 +267,24 @@ $(document).ready(function() {
             data: { letter: letter, search: search, jabatan: jabatan },
             success: function(html) {
                 $('#direktoriDosenContainer').html(html);
+                $('#check-all-dosen').prop('checked', false);
+                toggleTombolHapusMassalDosen();
             }
         });
     }
 
-    // Load awal saat halaman dibuka pertama kali
+    function toggleTombolHapusMassalDosen() {
+        let terpilih = $('.check-item-dosen:checked').length;
+        if (terpilih > 0) {
+            $('#jumlah-terpilih-dosen').text(terpilih);
+            $('#btn-hapus-massal-dosen').removeClass('d-none');
+        } else {
+            $('#btn-hapus-massal-dosen').addClass('d-none');
+        }
+    }
+
     loadDosen();
 
-    // SINKRONISASI FILTER ABJAD (A-Z)
     $('.btn-letter-filter').on('click', function() {
         $('.btn-letter-filter').removeClass('active');
         $(this).addClass('active');
@@ -257,20 +293,78 @@ $(document).ready(function() {
         loadDosen(currentLetter, $('#searchDosen').val(), $('#filterJabatan').val());
     });
 
-    // Real-time Search Input Dosen
     $('#searchDosen').on('keyup', function() {
         loadDosen(currentLetter, $(this).val(), $('#filterJabatan').val());
     });
 
-    // Dropdown Jabatan Change Filter
     $('#filterJabatan').on('change', function() {
         loadDosen(currentLetter, $('#searchDosen').val(), $(this).val());
     });
 
-    // Event Tampilkan Detail Profil
-    $(document).on('click', '.card-dosen-klik', function(e) {
-        if ($(e.target).closest('.btn-hapus-dosen, .btn-edit-dosen').length) return;
+    // LOGIKA MASTER SELECT ALL DOSEN
+    $('#check-all-dosen').change(function() {
+        let status = $(this).is(':checked');
+        $('.check-item-dosen').prop('checked', status);
+        toggleTombolHapusMassalDosen();
+    });
 
+    // LOGIKA INDIVIDUAL CHECKBOX DOSEN
+    $(document).on('change', '.check-item-dosen', function() {
+        let totalItem = $('.check-item-dosen').length;
+        let totalChecked = $('.check-item-dosen:checked').length;
+        
+        if (totalItem === totalChecked) {
+            $('#check-all-dosen').prop('checked', true);
+        } else {
+            $('#check-all-dosen').prop('checked', false);
+        }
+        toggleTombolHapusMassalDosen();
+    });
+
+    // PROSES AJAX DELETE MASSAL DOSEN
+    $('#btn-hapus-massal-dosen').click(function() {
+        let listId = [];
+        $('.check-item-dosen:checked').each(function() {
+            listId.push($(this).val());
+        });
+
+        if (listId.length === 0) return;
+
+        Swal.fire({
+            title: 'Hapus Semua Terpilih?',
+            text: "Sebanyak " + listId.length + " data dosen akan dihapus permanen beserta akun loginnya dari sistem!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Hapus Semua!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'proses.php',
+                    type: 'POST',
+                    data: {
+                        action: 'delete_massal_dosen',
+                        ids: listId,
+                        csrf_token: '<?= $token; ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            Swal.fire('Berhasil!', response.message, 'success');
+                            loadDosen(currentLetter, $('#searchDosen').val(), $('#filterJabatan').val());
+                        } else {
+                            Swal.fire('Gagal!', response.message, 'error');
+                        }
+                    }
+                });
+            }
+        });
+    });
+
+    // TRIGGER MODAL DETAIL DOSEN
+    $(document).on('click', '.btn-detail-dosen', function() {
         let idDsn = $(this).data('id');
         $.ajax({
             url: 'fetch_dosen.php',
@@ -279,7 +373,7 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(data) {
                 let htmlDetail = `
-                    <img src="../../uploads/profile/${data.foto}" class="rounded-circle mb-3 border shadow-sm" width="110" height="110" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+                    <img src="../../assets/uploads/profile/${data.foto || 'default.png'}" class="rounded-circle mb-3 border shadow-sm" width="110" height="110" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
                     <h5 class="fw-bold text-navy mb-1">${data.nama_dosen}</h5>
                     <span class="badge bg-primary rounded-pill px-3 mb-2" style="font-size: 11px;">NIDN: ${data.nidn}</span>
                     <div class="mb-3"><span class="badge bg-info rounded-pill px-3 text-dark" style="font-size: 11px;">${data.jabatan || 'Belum Ada Jabatan'}</span></div>
@@ -296,7 +390,7 @@ $(document).ready(function() {
         });
     });
 
-    // Event Klik Tombol Edit
+    // TRIGGER MODAL EDIT DOSEN
     $(document).on('click', '.btn-edit-dosen', function(e) {
         e.stopPropagation();
         let idDsn = $(this).data('id');
@@ -317,7 +411,7 @@ $(document).ready(function() {
         });
     });
 
-    // Proses Tambah Dosen Manual via AJAX
+    // AJAX PROSES TAMBAH DOSEN
     $('#formTambahDosen').on('submit', function(e) {
         e.preventDefault();
         $.ajax({
@@ -335,13 +429,17 @@ $(document).ready(function() {
         });
     });
 
-    // Proses Simpan Edit Dosen via AJAX
+    // AJAX PROSES EDIT DOSEN
     $('#formEditDosen').on('submit', function(e) {
         e.preventDefault();
+        let formData = new FormData(this);
+        formData.append('action', 'update');
         $.ajax({
             url: 'proses.php',
             type: 'POST',
-            data: $(this).serialize() + '&action=update',
+            data: formData,
+            contentType: false,
+            processData: false,
             dataType: 'json',
             success: function(response) {
                 if(response.status === 'success') {
@@ -353,12 +451,12 @@ $(document).ready(function() {
         });
     });
 
-    // Proses Hapus Data Dosen via AJAX
+    // AJAX PROSES HAPUS DOSEN INDIVIDUAL
     $(document).on('click', '.btn-hapus-dosen', function(e) {
         e.stopPropagation(); 
         var id = $(this).data('id');
         var nama = $(this).data('nama');
-        var token = '<?= generate_csrf_token(); ?>';
+        var token = '<?= $token; ?>';
 
         Swal.fire({
             title: 'Apakah Anda yakin?',
@@ -379,7 +477,7 @@ $(document).ready(function() {
                     success: function(response) {
                         if(response.status === 'success') {
                             Swal.fire('Terhapus!', response.message, 'success').then(() => {
-                                $('#card-dosen-' + id).fadeOut(500, function() { $(this).remove(); });
+                                loadDosen(currentLetter, $('#searchDosen').val(), $('#filterJabatan').val());
                             });
                         } else {
                             Swal.fire('Gagal!', response.message, 'error');
